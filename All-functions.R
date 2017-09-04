@@ -1,6 +1,6 @@
 ################### FUNCTIONS ####
 
-txt2GR<-function(fileTable,format,GRfolder,MetaData){
+txt2GR<-function(fileTable,format,GRfolder,fileMetaData){
 
     #' @title Function to filter a ChIP-Seq output.
     #' @description Function to filter a ChIP-Seq output (in .narrowpeak or MACS's peaks.bed formats) and
@@ -20,25 +20,25 @@ txt2GR<-function(fileTable,format,GRfolder,MetaData){
     requireNamespace("IRanges")
     requireNamespace("dplyr")
 
-    if (is.data.frame(MetaData)==F){
-        if(is.matrix(MetaData)){
-            if(length(MetaData[1,])==7){
-                MetaData<-as.data.frame(MetaData,stringsAsFactors=F)
+    if (is.data.frame(fileMetaData)==F){
+        if(is.matrix(fileMetaData)){
+            if(length(fileMetaData[1,])==7){
+                fileMetaData<-as.data.frame(fileMetaData,stringsAsFactors=F)
             }else{
-                warning("MetaData format error: 'MetaData' must be a data frame/matrix/array
+                warning("fileMetaData format error: 'fileMetaData' must be a data frame/matrix/array
                         with 7 atributes: 'Name','Accession','Cell','Cell Type','Treatment','Antibody','TF'")
                 break
             }
-        }else if(is.array(MetaData)){
-            if(length(MetaData)==7){
-                MetaData<-as.data.frame(MetaData,stringsAsFactors=F)
+        }else if(is.array(fileMetaData)){
+            if(length(fileMetaData)==7){
+                fileMetaData<-as.data.frame(fileMetaData,stringsAsFactors=F)
             }else{
-                warning("MetaData format error: 'MetaData' must be a data frame/matrix/array
+                warning("fileMetaData format error: 'fileMetaData' must be a data frame/matrix/array
                         with 7 atributes: 'Name','Accession','Cell','Cell Type','Treatment','Antibody','TF'")
                 break
             }
         }else{
-            warning("MetaData format error: 'MetaData' must be a data frame/matrix/array
+            warning("fileMetaData format error: 'fileMetaData' must be a data frame/matrix/array
                     with 7 atributes: 'Name','Accession','Cell','Cell Type','Treatment','Antibody','TF'")
             break
         }
@@ -48,7 +48,7 @@ txt2GR<-function(fileTable,format,GRfolder,MetaData){
     if(format=="narrowpeak"){
 
         if(fileTable[1,8]==-1 & fileTable[1,9]==-1){
-            warning ("The ChIP-Seq input file does not include p-value or Q-value for each peak. Please, make sure the peaks in the input file have been previously filtered according to their significance")
+            warning ("The ChIP-Seq input file ",fileMetaData$Name," does not include p-value or Q-value for each peak. Please, make sure the peaks in the input file have been previously filtered according to their significance")
             fileTable<-dplyr::select(fileTable,V1,V2,V3)
             Stat<-"no score"
             fileTable$score=rep(NA,length(fileTable[,1]))
@@ -67,9 +67,9 @@ txt2GR<-function(fileTable,format,GRfolder,MetaData){
             fileTable<-fileTable[fileTable$score<valLimit,]
         }
 
-        MetaData<-c(MetaData,Stat)
+        fileMetaData<-c(fileMetaData,Stat)
 
-        MDframe<-as.data.frame(lapply(MetaData, rep,length(fileTable[,1])))
+        MDframe<-as.data.frame(lapply(fileMetaData, rep,length(fileTable[,1])))
         colnames(MDframe)<-c("Name","Accession","Cell","Cell Type","Treatment","Antibody","TF","Score Type")
 
         gr<-GenomicRanges::GRanges(
@@ -80,9 +80,7 @@ txt2GR<-function(fileTable,format,GRfolder,MetaData){
             mcols=MDframe
         )
 
-
-        save(gr,file = paste0(GRfolder,"/",MetaData$Accession,".Rdata"))
-        rm(MDframe,MetaData)
+        save(gr,file = paste0(GRfolder,"/",fileMetaData$Accession,".Rdata"))
 
     }else if(format=="macs"){
 
@@ -90,8 +88,9 @@ txt2GR<-function(fileTable,format,GRfolder,MetaData){
             fileTable<-dplyr::select(fileTable,V1,V2,V3,V5)
             colnames(fileTable)<-c("chr","start","end","score")
             fileTable<-fileTable[fileTable$score>50,]
+            fileMetaData<-c(fileMetaData,"-10*log.Pvalue")
         }else if (length(fileTable[1,])==4 & is.character(fileTable[1,4])){ # if the 4th column consists of peak names
-            warning ("The ChIP-Seq input file does not include p-value or Q-value for each peak. Please, make sure the peaks in the input file have been previously filtered according to their significance")
+            warning ("The ChIP-Seq input file ",fileMetaData$Name," does not include p-value or Q-value for each peak. Please, make sure the peaks in the input file have been previously filtered according to their significance")
             fileTable<-dplyr::select(fileTable,V1,V2,V3)
             Stat<-"no score"
             fileTable$score=rep(NA,length(fileTable[,1]))
@@ -99,11 +98,10 @@ txt2GR<-function(fileTable,format,GRfolder,MetaData){
         }else if (length(fileTable[1,])==4 & !is.character(fileTable[1,4])){ # if the 4th column consists of adjusted p-values
             colnames(fileTable)<-c("chr","start","end","score")
             fileTable<-fileTable[fileTable$score>50,]
+            fileMetaData<-c(fileMetaData,"-10*log.Pvalue")
         }
 
-        MetaData<-c(MetaData,"-10*log.Pvalue")
-
-        MDframe<-as.data.frame(lapply(MetaData, rep,length(fileTable[,1])))
+        MDframe<-as.data.frame(lapply(fileMetaData, rep,length(fileTable[,1])))
         colnames(MDframe)<-c("Name","Accession","Cell","Cell Type","Treatment","Antibody","TF","Score Type")
 
         gr<-GenomicRanges::GRanges(
@@ -115,9 +113,8 @@ txt2GR<-function(fileTable,format,GRfolder,MetaData){
         )
 
 
-        save(gr,file = paste0(GRfolder,"/",MetaData$Accession,".Rdata"))
+        save(gr,file = paste0(GRfolder,"/",fileMetaData$Accession,".Rdata"))
 
-        rm(MDframe,MetaData)
     }else{
         warning("Wrong file format. Only narrowPeak or MACS output ('_peaks.bed') are supported.
               Please choose either 'narrowPeak' or 'Macs'.")
