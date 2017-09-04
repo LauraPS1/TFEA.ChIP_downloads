@@ -364,6 +364,7 @@ getCMstats<-function(CM_list,chip_index=get_chip_index()){
     for (idx in names(CM_list)){
         FTres<-try({stats::fisher.test(x=CM_list[[idx]])},silent = T)
         if(class(FTres)=="htest"){
+            statMat$p.value[which(statMat$Accession==idx)]<-FTres$p.value
             statMat$p.value.10log10[which(statMat$Accession==idx)]=((-10)*log10(FTres$p.value))
             statMat$OR[which(statMat$Accession==idx)]=FTres$estimate
         }
