@@ -672,7 +672,7 @@ plot_CM<-function(CM.statMatrix,plot_title = NULL,specialTF = NULL,TF_colors = N
         colores<-highlight_list[[2]]
     }
     if(!is.null(specialTF)&!is.null(TF_colors)){
-        highlight_list<-highlight.TF(CM.statMatrix,4,specialTF,TF_colors)
+        highlight_list<-highlight.TF(CM.statMatrix,2,specialTF,TF_colors)
         CM.statMatrix$highlight<-highlight_list[[1]]
         colores<-highlight_list[[2]]
     }
