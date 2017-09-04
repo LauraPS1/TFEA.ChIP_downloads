@@ -692,14 +692,18 @@ plot_CM<-function(pval_mat,plot_title = NULL,specialTF = NULL,TF_colors = NULL){
     pval_mat$Cell<-MetaData$Cell
     rm(MetaData)
     pval_mat_highlighted<-pval_mat[pval_mat$highlight!="Other",]
-    pval_mat<-rbind(pval_mat[pval_mat$highlight=="Other",],pval_mat_highlighted)
-    rm(pval_mat_highlighted)
+    pval_mat_other<-pval_mat[pval_mat$highlight=="Other",]
 
-    p<-plotly::plot_ly(pval_mat, x=~log.Pval,y=~OR,type="scatter",mode="markers",
-                  text=paste0(pval_mat$Accession,": ",pval_mat$TF,
-                              '<br>Treatment: ',pval_mat$Treatment,
-                              '<br>Cell: ',pval_mat$Cell),
-                  color = ~highlight, colors=colores) %>%
+    p<-plotly::plot_ly(pval_mat_other, x=~log.Pval,y=~OR,type="scatter",mode="markers",
+                       text=paste0(pval_mat_other$Accession,": ",pval_mat_other$TF,
+                                   '<br>Treatment: ',pval_mat_other$Treatment,
+                                   '<br>Cell: ',pval_mat_other$Cell),
+                       color = ~highlight, colors=colores)
+    p<-plotly::add_markers(p,x=pval_mat_highlighted$log.Pval, y=pval_mat_highlighted$OR,type="scatter", mode="markers",
+                           text=paste0(pval_mat_highlighted$Accession,": ",pval_mat_highlighted$TF,
+                                       '<br>Treatment: ',pval_mat_highlighted$Treatment,
+                                       '<br>Cell: ',pval_mat_highlighted$Cell),
+                           color = pval_mat_highlighted$highlight, colors=colores)%>%
         plotly::layout(title=plot_title)
     p
     return(p)
@@ -771,15 +775,22 @@ plot_GSEA_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_col
     tabla.Enr$Treatment<-MetaData$Treatment
     rm(MetaData)
     tabla.Enr_highlighted<-tabla.Enr[tabla.Enr$highlight!="Other",]
-    tabla.Enr<-rbind(tabla.Enr[tabla.Enr$highlight=="Other",],tabla.Enr_highlighted)
+    tabla.Enr_other<-rbind(tabla.Enr[tabla.Enr$highlight=="Other",],tabla.Enr_highlighted)
     rm(tabla.Enr_highlighted)
 
 
-    p<-plotly::plot_ly(tabla.Enr, x=tabla.Enr$Arg.ES,y=tabla.Enr$ES, type="scatter", mode="markers",
-               text=paste0(tabla.Enr$Accession,": ",tabla.Enr$TF,
-                          '<br>Pval: ',round(tabla.Enr$pval.ES,3),
-                          '<br>Treatment: ',tabla.Enr$Treatment),
-               color=tabla.Enr$highlight, colors=colores, symbol=tabla.Enr$symbol, symbols=c("circle","x"))%>%
+    p<-plotly::plot_ly(tabla.Enr_other, x=tabla.Enr_other$Arg.ES,y=tabla.Enr_other$ES, type="scatter", mode="markers",
+               text=paste0(tabla.Enr_other$Accession,": ",tabla.Enr_other$TF,
+                          '<br>Pval: ',round(tabla.Enr_other$pval.ES,3),
+                          '<br>Treatment: ',tabla.Enr_other$Treatment),
+               color=tabla.Enr_other$highlight, colors=colores, symbol=tabla.Enr_other$symbol, symbols=c("circle","x"))
+
+    p<-plotly::add_markers(p,x=tabla.Enr_highlighted$Arg.ES, y=tabla.Enr_highlighted$ES,type="scatter", mode="markers",
+                           text=paste0(tabla.Enr_highlighted$Accession,": ",tabla.Enr_highlighted$TF,
+                                       '<br>Pval: ',round(tabla.Enr_highlighted$pval.ES,3),
+                                       '<br>Treatment: ',tabla.Enr_highlighted$Treatment),
+                           color=tabla.Enr_highlighted$highlight, colors=colores,
+                           symbol=tabla.Enr_highlighted$symbol, symbols=c("circle","x"))%>%
         plotly::layout(title=plot_title,
                xaxis = list(title = "Argument"),
                yaxis = list (title = "ES"))
@@ -1019,3 +1030,4 @@ plot_RES<-function(GSEA.runningSum,LFC,plot_title = NULL,line.colors = NULL,line
     graf
     return(graf)
 }
+
