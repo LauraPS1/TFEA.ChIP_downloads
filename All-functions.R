@@ -369,7 +369,7 @@ getCMstats<-function(CM_list,chip_index=get_chip_index()){
             statMat$OR[which(statMat$Accession==idx)]=FTres$estimate
         }
     }
-    statMat$adj.p.value.10log10<-stats::p.adjust(statMat$p.value,"fdr")
+    statMat$adj.p.value.10log10<-stats::p.adjust(statMat$p.value.10log10,"fdr")
     return(statMat)
 
 }
