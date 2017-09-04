@@ -374,7 +374,7 @@ getPvalMat<-function(CM_list,chip_index=get_chip_index()){
         pval_mat[i,3]<-pval_list[[i]]$estimate
         pval_mat[i,4]<-as.character(chip_index[chip_index$Accession==names(pval_list)[i],2])
     }
-    colnames(pval_mat)<-c("Accession","log.Pval","OR","TF")
+    colnames(pval_mat)<-c("Accession","10*log.Pval","OR","TF")
     pval_mat<-as.data.frame(pval_mat,stringsAsFactors=F)
     pval_mat$log.Pval<-as.numeric(pval_mat$log.Pval)
     pval_mat$OR<-as.numeric(pval_mat$OR)
