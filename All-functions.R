@@ -362,8 +362,6 @@ getCMstats<-function(CM_list,chip_index=get_chip_index()){
         }
     }
 
-    requireNamespace("stats")
-
     statMat<-data.frame(Accession=chip_index$Accession,TF=chip_index$TF,p.value=NA,OR=NA)
     for (idx in names(CM_list)){
         FTres<-try({stats::fisher.test(x=CM_list[[idx]])},silent = T)
