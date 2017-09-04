@@ -88,7 +88,7 @@ txt2GR<-function(fileTable,format,GRfolder,fileMetaData){
             fileTable<-dplyr::select(fileTable,V1,V2,V3,V5)
             colnames(fileTable)<-c("chr","start","end","score")
             fileTable<-fileTable[fileTable$score>50,]
-            fileMetaData<-c(fileMetaData,"-10*log.Pvalue")
+            Stat<-"10*log10(p-Value)"
         }else if (length(fileTable[1,])==4 & is.character(fileTable[1,4])){ # if the 4th column consists of peak names
             warning ("The ChIP-Seq input file ",fileMetaData$Name," does not include p-value or Q-value for each peak. Please, make sure the peaks in the input file have been previously filtered according to their significance")
             fileTable<-dplyr::select(fileTable,V1,V2,V3)
@@ -98,9 +98,10 @@ txt2GR<-function(fileTable,format,GRfolder,fileMetaData){
         }else if (length(fileTable[1,])==4 & !is.character(fileTable[1,4])){ # if the 4th column consists of adjusted p-values
             colnames(fileTable)<-c("chr","start","end","score")
             fileTable<-fileTable[fileTable$score>50,]
-            fileMetaData<-c(fileMetaData,"-10*log.Pvalue")
+            Stat<-"10*log10(p-Value)"
         }
-
+        fileMetaData<-c(fileMetaData,Stat)
+        
         MDframe<-as.data.frame(lapply(fileMetaData, rep,length(fileTable[,1])))
         colnames(MDframe)<-c("Name","Accession","Cell","Cell Type","Treatment","Antibody","TF","Score Type")
 
