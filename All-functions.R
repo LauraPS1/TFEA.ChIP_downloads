@@ -280,16 +280,17 @@ get_chip_index<-function(database = "g",TFfilter = NULL){
 
 contingency_matrix<-function(test_list,control_list,chip_index=get_chip_index()){
 
-    #' @title Makes contingency matrix
-    #' @description Function to make contingency matrix based on the matches between two gene ID lists
+    #' @title Computes 2x2 contingency matrices
+    #' @description Function to compute contingency 2x2 matrix based on the matches between two gene ID lists
     #' and a ChIP-Seq binding database.
     #' @param test_list List of gene Entrez IDs
-    #' @param control_list List of gene Entrez IDs. If it's not provided, a random sample of genes not present in test_list will be generated.
-    #' @param chip_index Output of the function “get_chip_index”,a data frame containing accession IDs of ChIPs on the database and the TF each one tests.
-    #' @return List of contingency matrix, one CM per element in chip_index.
+    #' @param control_list If not provided, all human genes not present in test_list will be used as control.
+    #' @param chip_index Output of the function “get_chip_index”, a data frame containing
+    #' accession IDs of ChIPs on the database and the TF each one tests. If not provided, the whole internal database will be used
+    #' @return List of contingency matrices, one CM per element in chip_index (i.e. per ChIP-seq dataset).
     #' @export contingency_matrix
     #' @examples
-    #' contingency_matrix(Genes.Upreg,Genes.Control,chip_index)
+    #' contingency_matrix(Genes.Upreg)
 
     requireNamespace("utils")
 
@@ -333,20 +334,20 @@ contingency_matrix<-function(test_list,control_list,chip_index=get_chip_index())
     return(CM_list)
 }
 
-getPvalMat<-function(CM_list,chip_index=get_chip_index()){
+getCMstats<-function(CM_list,chip_index=get_chip_index()){
 
     #' @title Generates a data frame with Accession, TF, OR and p-val from a contingency_matrix output
-    #' @description Using the output from “contingency_matrix”, this function generates a data frame
-    #' that stores accession ID of a ChIP-Seq experiment, the TF tested in that
-    #' experiment, the odds ratio of the contingency matrix and p-value.
+    #' @description From a list of contingency matrices, such as the output from “contingency_matrix”, this function computes a fisher's exact test for each matrix and generates a data frame that stores
+    #' accession ID of a ChIP-Seq experiment, the TF tested in that experiment, and the p-value and the odds ratio resulting
+    #' from the test.
     #' @param CM_list Output of “contingency_matrix”, a list of contingency matrix.
-    #' @param chip_index Output of the function “get_chip_index”,a data frame containing
-    #' accession IDs of ChIPs on the database and the TF each one tests.
+    #' @param chip_index Output of the function “get_chip_index”, a data frame containing
+    #' accession IDs of ChIPs on the database and the TF each one tests. If not provided, the whole internal database will be used
     #' @return Data frame containing accession ID of a ChIP-Seq experiment, the TF tested
-    #' in that experiment, the odds ratio of the contingency matrix and adjusted p-value.
-    #' @export getPvalMat
+    #' in that experiment, raw p-value (-10*log10 pvalue), odds-ratio and FDR-adjusted p-values (-10*log10 adj.pvalue).
+    #' @export getCMstats
     #' @examples
-    #' getPvalMat(CM_list_UP,chip_index)
+    #' getCMstats(CM_list_UP)
 
     requireNamespace("stats")
 
@@ -361,25 +362,18 @@ getPvalMat<-function(CM_list,chip_index=get_chip_index()){
         }
     }
 
-    pval_vector<-vector(length=length(pval_list)) # Adjust P-value
-    for (i in 1:length(pval_list)){
-        pval_vector[i]<-pval_list[[i]]$p.value
-    }
-    pval.adj<-stats::p.adjust(pval_vector,"fdr")
+    requireNamespace("stats")
 
-    pval_mat<-matrix(nrow = length(pval_list),ncol=4) # Make P-value matrix
-    for (i in 1:length(pval_list)){
-        pval_mat[i,1]<-names(pval_list)[i]
-        pval_mat[i,2]<-(-1*(log(pval.adj[i])))
-        pval_mat[i,3]<-pval_list[[i]]$estimate
-        pval_mat[i,4]<-as.character(chip_index[chip_index$Accession==names(pval_list)[i],2])
+    statMat<-data.frame(Accession=chip_index$Accession,TF=chip_index$TF,p.value=NA,OR=NA)
+    for (idx in names(CM_list)){
+        FTres<-try({stats::fisher.test(x=CM_list[[idx]])},silent = T)
+        if(class(FTres)=="htest"){
+            statMat$p.value.10log10[which(statMat$Accession==idx)]=((-10)*log10(FTres$p.value))
+            statMat$OR[which(statMat$Accession==idx)]=FTres$estimate
+        }
     }
-    colnames(pval_mat)<-c("Accession","10*log.Pval","OR","TF")
-    pval_mat<-as.data.frame(pval_mat,stringsAsFactors=F)
-    pval_mat$log.Pval<-as.numeric(pval_mat$log.Pval)
-    pval_mat$OR<-as.numeric(pval_mat$OR)
-
-    return(pval_mat)
+    statMat$adj.p.value.10log10<-stats::p.adjust(statMat$p.value,"fdr")
+    return(statMat)
 
 }
 
@@ -643,12 +637,13 @@ highlight.TF<-function(table,column,specialTF,colores){
     return(list(highlight,colores))
 }
 
-plot_CM<-function(pval_mat,plot_title = NULL,specialTF = NULL,TF_colors = NULL){
+plot_CM<-function(CM.statMatrix,plot_title = NULL,specialTF = NULL,TF_colors = NULL){
 
     #' @title Makes an interactive html plot from an enrichment table.
     #' @description Function to make an interactive html plot from a transcription
     #' factor enrichment table, output of the function "getPvalMat".
-    #' @param pval_mat Output of "getPvalMat". TF enrichment table from a contingency matrix analysis.
+    #' @param CM.statMatrix Output of the function "getCMstats".
+    #' A data frame storing: Accession ID of every ChIP-Seq tested, Transcription Factor,Odds Ratio, p-value and adjusted p-value.
     #' @param plot_title The title for the plot.
     #' @param specialTF (Optional) Named vector of TF symbols -as written in the enrichment table- to be highlighted in the plot.
     #' The name of each element of the vector specifies its color group, i.e.: naming elements HIF1A and HIF1B as "HIF" to represent them with the same color.
@@ -667,7 +662,7 @@ plot_CM<-function(pval_mat,plot_title = NULL,specialTF = NULL,TF_colors = NULL){
 
     if (is.null(plot_title)){plot_title<-"Transcription Factor Enrichment"}
     if (is.null(specialTF)){
-        pval_mat$highlight<-rep("Other",length(pval_mat[,1]))
+        CM.statMatrix$highlight<-rep("Other",length(CM.statMatrix[,1]))
         colores<-c("azure4")
         names(colores)<-c("Other")
     }
@@ -675,35 +670,35 @@ plot_CM<-function(pval_mat,plot_title = NULL,specialTF = NULL,TF_colors = NULL){
         TF_colors<-c("red","blue","green","hotpink","cyan","greenyellow","gold",
                      "darkorchid","chocolate1","black","lightpink","seagreen")
         TF_colors<-TF_colors[1:length(unique(names(specialTF)))]
-        highlight_list<-highlight.TF(pval_mat,2,specialTF,TF_colors)
-        pval_mat$highlight<-highlight_list[[1]]
+        highlight_list<-highlight.TF(CM.statMatrix,2,specialTF,TF_colors)
+        CM.statMatrix$highlight<-highlight_list[[1]]
         colores<-highlight_list[[2]]
     }
     if(!is.null(specialTF)&!is.null(TF_colors)){
-        highlight_list<-highlight.TF(pval_mat,4,specialTF,TF_colors)
-        pval_mat$highlight<-highlight_list[[1]]
+        highlight_list<-highlight.TF(CM.statMatrix,4,specialTF,TF_colors)
+        CM.statMatrix$highlight<-highlight_list[[1]]
         colores<-highlight_list[[2]]
     }
 
-    MetaData<-MetaData[MetaData$Accession%in%pval_mat$Accession,]
+    MetaData<-MetaData[MetaData$Accession%in%CM.statMatrix$Accession,]
     MetaData<-dplyr::arrange(MetaData,Accession)
-    pval_mat<-dplyr::arrange(pval_mat,Accession)
-    pval_mat$Treatment<-MetaData$Treatment
-    pval_mat$Cell<-MetaData$Cell
+    CM.statMatrix<-dplyr::arrange(CM.statMatrix,Accession)
+    CM.statMatrix$Treatment<-MetaData$Treatment
+    CM.statMatrix$Cell<-MetaData$Cell
     rm(MetaData)
-    pval_mat_highlighted<-pval_mat[pval_mat$highlight!="Other",]
-    pval_mat_other<-pval_mat[pval_mat$highlight=="Other",]
+    CM.statMatrix_highlighted<-CM.statMatrix[CM.statMatrix$highlight!="Other",]
+    CM.statMatrix_other<-CM.statMatrix[CM.statMatrix$highlight=="Other",]
 
-    p<-plotly::plot_ly(pval_mat_other, x=~log.Pval,y=~OR,type="scatter",mode="markers",
-                       text=paste0(pval_mat_other$Accession,": ",pval_mat_other$TF,
-                                   '<br>Treatment: ',pval_mat_other$Treatment,
-                                   '<br>Cell: ',pval_mat_other$Cell),
+    p<-plotly::plot_ly(CM.statMatrix_other, x=~adj.p.value.10log10,y=~OR,type="scatter",mode="markers",
+                       text=paste0(CM.statMatrix_other$Accession,": ",CM.statMatrix_other$TF,
+                                   '<br>Treatment: ',CM.statMatrix_other$Treatment,
+                                   '<br>Cell: ',CM.statMatrix_other$Cell),
                        color = ~highlight, colors=colores)
-    p<-plotly::add_markers(p,x=pval_mat_highlighted$log.Pval, y=pval_mat_highlighted$OR,type="scatter", mode="markers",
-                           text=paste0(pval_mat_highlighted$Accession,": ",pval_mat_highlighted$TF,
-                                       '<br>Treatment: ',pval_mat_highlighted$Treatment,
-                                       '<br>Cell: ',pval_mat_highlighted$Cell),
-                           color = pval_mat_highlighted$highlight, colors=colores)%>%
+    p<-plotly::add_markers(p,x=CM.statMatrix_highlighted$adj.p.value.10log10, y=CM.statMatrix_highlighted$OR,type="scatter", mode="markers",
+                           text=paste0(CM.statMatrix_highlighted$Accession,": ",CM.statMatrix_highlighted$TF,
+                                       '<br>Treatment: ',CM.statMatrix_highlighted$Treatment,
+                                       '<br>Cell: ',CM.statMatrix_highlighted$Cell),
+                           color = CM.statMatrix_highlighted$highlight, colors=colores)%>%
         plotly::layout(title=plot_title)
     p
     return(p)
