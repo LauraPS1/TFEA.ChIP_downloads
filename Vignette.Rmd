@@ -94,7 +94,7 @@ The function *plot_CM* uses the package *plotly* to generate an interactive plot
 ```{r eval=FALSE, echo=T, fig.width=7, fig.height=5}
 plot_CM(pval_mat_UP)
 ```
-![Example of the plot obtained with plot_CM.](/home/laura/Regulatory Networks/Final/Publi/viñetas/plot.CM.png)
+![Example of the plot obtained with plot_CM. To limit this file's size, only static PNGs of the plots are shown in this vignette.](/home/laura/Regulatory Networks/Final/Publi/viñetas/plot.CM.png)
 
 In fact, the exploration of this graph shows a strong enrichment for several HIF datasets, as expected.
 This can be clearly shown by highlighting the datasets of interest:
@@ -106,7 +106,7 @@ names(HIFs)<-c("EPAS1","HIF1A","ARNT")
 col<-c("red","blue","green")
 plot_CM(pval_mat_UP,specialTF = HIFs,TF_colors = col)
 ```
-![Example of the plot obtained with plot_CM, highlighting ChIP-Seqs from EPAS1, HIF1A and ARNT.](/home/laura/Regulatory Networks/Final/Publi/viñetas/plot.CM.color.png)
+![Example of the plot obtained with plot_CM, highlighting ChIP-Seqs from EPAS1, HIF1A and ARNT. To limit this file's size, only static PNGs of the plots are shown in this vignette.](/home/laura/Regulatory Networks/Final/Publi/viñetas/plot.CM.color.png)
 
 2. Gene Set Enrichment Analysis.
     
@@ -161,14 +161,14 @@ names(TF.hightligh)<-c("EPAS1","HIF1A","ARNT")
 col<- c("red","blue","green")
 plot_GSEA_ES(GSEA.result,LFC = Arranged.Genes$log2FoldChange,specialTF = TF.hightligh,TF_colors = col)
 ```
-![Example of the plot obtained with plot_GSEA_ES](/home/laura/Regulatory Networks/Final/Publi/viñetas/plot.ES.png)
+![Example of the plot obtained with plot_GSEA_ES. To limit this file's size, only static PNGs of the plots are shown in this vignette.](/home/laura/Regulatory Networks/Final/Publi/viñetas/plot.ES.png)
 
 v.ii) Plot Runing Enrichment Scores with *plot_GSEA_RES*. This function will plot **all** the RES stored in the *GSEA.run* output. It is only recommended to use if the user has previously restricted the RES stored in *GSEA.run* with the variable *RES.filter*
     
 ```{r eval=FALSE, echo=T,fig.width=7, fig.height=4}
 plot_GSEA_RES(GSEA_result = GSEA.result,LFC = Arranged.Genes$log2FoldChange)
 ```
-![Example of the plot obtained with plot_GSEA_RES.](/home/laura/Regulatory Networks/Final/Publi/viñetas/plot.RES.png)
+![Example of the plot obtained with plot_GSEA_RES. To limit this file's size, only static PNGs of the plots are shown in this vignette.](/home/laura/Regulatory Networks/Final/Publi/viñetas/plot.RES.png)
 
 
 v.iii) Plot a subset of the Running Scores with *plot_RES*. This funtion allows to plot a given subset of the Running Enrichment Scores stored. It's useful to plot, only the RES corresponding to a particular TF, or to discard the RES of those ChIP-Seq that did not get a significant p-value.
@@ -182,7 +182,7 @@ GSEA.runningSums<-GSEA.result$RES[names(GSEA.result$RES) %in% GSEA.result$Enrich
                                   
 plot_RES(GSEA.runningSum = GSEA.runningSums,LFC = Arranged.Genes$log2FoldChange)
 ```
-![Example of the output of plot_RES, selecting only MXI1 ChIP-Seqs that had a significant p-value.](/home/laura/Regulatory Networks/Final/Publi/viñetas/plot.RES.mxi1.png)
+![Example of the output of plot_RES, selecting only MXI1 ChIP-Seqs that had a significant p-value. To limit this file's size, only static PNGs of the plots are shown in this vignette.](/home/laura/Regulatory Networks/Final/Publi/viñetas/plot.RES.mxi1.png)
 
 
 ## Building a TF-gene binding database
