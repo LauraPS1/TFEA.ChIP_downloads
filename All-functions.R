@@ -100,6 +100,7 @@ txt2GR<-function(fileTable,format,GRfolder,fileMetaData){
             fileTable<-fileTable[fileTable$score>50,]
             Stat<-"10*log10(p-Value)"
         }
+        
         fileMetaData<-c(fileMetaData,Stat)
         
         MDframe<-as.data.frame(lapply(fileMetaData, rep,length(fileTable[,1])))
@@ -112,7 +113,6 @@ txt2GR<-function(fileTable,format,GRfolder,fileMetaData){
             score=fileTable$score,
             mcols=MDframe
         )
-
 
         save(gr,file = paste0(GRfolder,"/",fileMetaData$Accession,".Rdata"))
 
@@ -292,7 +292,7 @@ contingency_matrix<-function(test_list,control_list,chip_index=get_chip_index())
 
     requireNamespace("utils")
 
-    if (missing(control_list)){
+    if (missing(control_list)){ # Generating control gene list in case is not provided.
         suppressMessages(require("TxDb.Hsapiens.UCSC.hg19.knownGene",quietly = T))
         Genes<-GenomicFeatures::genes(TxDb.Hsapiens.UCSC.hg19.knownGene)$gene_id
         control_list<-Genes[!(Genes %in% test_list)]
