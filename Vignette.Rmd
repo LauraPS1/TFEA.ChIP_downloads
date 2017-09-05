@@ -255,10 +255,10 @@ for (i in 1:length(dnase.sites.list)){
 }
 ```
 
-  iv) Load Dnase hypersensitive Sites database and generate the database with `GR2id_db`
+  iv) Load Dnase hypersensitive Sites database and generate your TFBS with *GR2id_db*
 
 ```
 load("~/path.to.DnaseHS")
-ListaGR<-dir("~/path.to.GR.files")
-TF.gene.binding.db<-GR2id_db(openDnase,ListaGR,GRfolder)
+ListGR<-dir("~/path.to.GR.files")
+TF.gene.binding.db<-GR2id_db(DnaseHS,ListGR,GRfolder="~/path.to.GR.files")
 ```
