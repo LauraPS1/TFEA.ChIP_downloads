@@ -775,24 +775,33 @@ plot_GSEA_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_col
     tabla.Enr<-dplyr::arrange(tabla.Enr,Accession)
     tabla.Enr$Treatment<-MetaData$Treatment
     rm(MetaData)
-    tabla.Enr_highlighted<-tabla.Enr[tabla.Enr$highlight!="Other",]
-    tabla.Enr_other<-rbind(tabla.Enr[tabla.Enr$highlight=="Other",],tabla.Enr_highlighted)
 
-    p<-plotly::plot_ly(tabla.Enr_other, x=tabla.Enr_other$Arg.ES,y=tabla.Enr_other$ES, type="scatter", mode="markers",
-               text=paste0(tabla.Enr_other$Accession,": ",tabla.Enr_other$TF,
-                          '<br>Pval: ',round(tabla.Enr_other$pval.ES,3),
-                          '<br>Treatment: ',tabla.Enr_other$Treatment),
-               color=tabla.Enr_other$highlight, colors=colores, symbol=tabla.Enr_other$symbol, symbols=c("circle","x"))
-
-    p<-plotly::add_markers(p,x=tabla.Enr_highlighted$Arg.ES, y=tabla.Enr_highlighted$ES,type="scatter", mode="markers",
-                           text=paste0(tabla.Enr_highlighted$Accession,": ",tabla.Enr_highlighted$TF,
-                                       '<br>Pval: ',round(tabla.Enr_highlighted$pval.ES,3),
-                                       '<br>Treatment: ',tabla.Enr_highlighted$Treatment),
-                           color=tabla.Enr_highlighted$highlight, colors=colores,
-                           symbol=tabla.Enr_highlighted$symbol, symbols=c("circle","x"))%>%
-        plotly::layout(title=plot_title,
-               xaxis = list(title = "Argument"),
-               yaxis = list (title = "ES"))
+        if(length(colores>1)){
+        tabla.Enr_highlighted<-tabla.Enr[tabla.Enr$highlight!="Other",]
+        tabla.Enr_other<-rbind(tabla.Enr[tabla.Enr$highlight=="Other",],tabla.Enr_highlighted)
+    
+        p<-plotly::plot_ly(tabla.Enr_other, x=tabla.Enr_other$Arg.ES,y=tabla.Enr_other$ES, type="scatter", mode="markers",
+                   text=paste0(tabla.Enr_other$Accession,": ",tabla.Enr_other$TF,
+                              '<br>Pval: ',round(tabla.Enr_other$pval.ES,3),
+                              '<br>Treatment: ',tabla.Enr_other$Treatment),
+                   color=tabla.Enr_other$highlight, colors=colores, symbol=tabla.Enr_other$symbol, symbols=c("circle","x"))
+    
+        p<-plotly::add_markers(p,x=tabla.Enr_highlighted$Arg.ES, y=tabla.Enr_highlighted$ES,type="scatter", mode="markers",
+                               text=paste0(tabla.Enr_highlighted$Accession,": ",tabla.Enr_highlighted$TF,
+                                           '<br>Pval: ',round(tabla.Enr_highlighted$pval.ES,3),
+                                           '<br>Treatment: ',tabla.Enr_highlighted$Treatment),
+                               color=tabla.Enr_highlighted$highlight, colors=colores,
+                               symbol=tabla.Enr_highlighted$symbol, symbols=c("circle","x"))%>%
+            plotly::layout(title=plot_title,
+                   xaxis = list(title = "Argument"),
+                   yaxis = list (title = "ES"))
+    }else if (length(colores)==1){
+        p<-plotly::plot_ly(tabla.Enr, x=tabla.Enr$Arg.ES,y=tabla.Enr$ES, type="scatter", mode="markers",
+                           text=paste0(tabla.Enr$Accession,": ",tabla.Enr$TF,
+                                       '<br>Pval: ',round(tabla.Enr$pval.ES,3),
+                                       '<br>Treatment: ',tabla.Enr$Treatment),
+                           color=tabla.Enr$highlight, colors=colores, symbol=tabla.Enr$symbol, symbols=c("circle","x"))
+    }
 
     LFC.bar<-get_LFC_bar(LFC)
 
