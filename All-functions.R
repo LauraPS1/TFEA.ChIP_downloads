@@ -365,11 +365,11 @@ getCMstats<-function(CM_list,chip_index=get_chip_index()){
         FTres<-try({stats::fisher.test(x=CM_list[[idx]])},silent = T)
         if(class(FTres)=="htest"){
             statMat$p.value[which(statMat$Accession==idx)]<-FTres$p.value
-            statMat$p.value.10log10[which(statMat$Accession==idx)]=((-10)*log10(FTres$p.value))
-            statMat$OR[which(statMat$Accession==idx)]=FTres$estimate
+            statMat$OR[which(statMat$Accession==idx)]<-FTres$estimate
         }
     }
-    statMat$adj.p.value.10log10<-stats::p.adjust(statMat$p.value.10log10,"fdr")
+    statMat$adj.p.value<-stats::p.adjust(statMat$p.value,"fdr")
+    statMat$log.adj.pVal<-(-1*(log(statMat$adj.p.value)))
     return(statMat)
 
 }
