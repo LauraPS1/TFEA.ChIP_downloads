@@ -686,19 +686,19 @@ plot_CM<-function(CM.statMatrix,plot_title = NULL,specialTF = NULL,TF_colors = N
     
     if(length(CM.statMatrix[CM.statMatrix$OR==Inf,1])>0){
         warn<-length(CM.statMatrix[CM.statMatrix$OR==Inf,1])
-        CM.statMatrix[CM.statMatrix$OR==Inf,]$OR<-rep(max(CM.statMatrix[CM.statMatrix$OR!=Inf]$OR),
+        CM.statMatrix[CM.statMatrix$OR==Inf,]$OR<-rep(max(CM.statMatrix[CM.statMatrix$OR!=Inf,]$OR),
                                                       length(CM.statMatrix[CM.statMatrix$OR==Inf,1]))
         warning(warn," elements have an Odds Ratio of Inf. Maximum value for OR introduced instead.")
     }
     if(length(CM.statMatrix[CM.statMatrix$OR==-Inf,1])>0){
         warn<-length(CM.statMatrix[CM.statMatrix$OR==-Inf,1])
-        CM.statMatrix[CM.statMatrix$OR==-Inf,]$OR<-rep(min(CM.statMatrix[CM.statMatrix$OR!=-Inf]$OR),
+        CM.statMatrix[CM.statMatrix$OR==-Inf,]$OR<-rep(min(CM.statMatrix[CM.statMatrix$OR!=-Inf,]$OR),
                                                        length(CM.statMatrix[CM.statMatrix$OR==-Inf,1]))
         warning(warn," elements have an Odds Ratio of -Inf. Minimum value for OR introduced instead.")
     }
     if(length(CM.statMatrix[CM.statMatrix$p.value==0,1])>0){
         warn<-length(CM.statMatrix[CM.statMatrix$p.value==0,1])
-        CM.statMatrix[CM.statMatrix$p.value==0,]$adj.p.value<-rep(max(CM.statMatrix[CM.statMatrix$p.value!=0]$log.adj.pVal),
+        CM.statMatrix[CM.statMatrix$p.value==0,]$adj.p.value<-rep(max(CM.statMatrix[CM.statMatrix$p.value!=0,]$log.adj.pVal),
                                                                   length(CM.statMatrix[CM.statMatrix$p.value==0,1]))
         warning(warn," elements have a -log(p-Value) of Inf. Maximum value for -log(p-Val) introduced instead.")
     }
