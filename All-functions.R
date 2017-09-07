@@ -224,7 +224,7 @@ SearchIDlist<-function(GeneList,id_db){
     return(TF_matrix)
 }
 
-set_user_data<-function(medatada,binary_matrix){
+set_user_data<-function(metadata,binary_matrix){
     #' @title Sets the data objects as default.
     #' @description Function to set the data objects provided by the user as default to the rest of the functions.
     #' @param metadata Data frame/matrix/array contaning the following fields: 'Name','Accession','Cell','Cell Type','Treatment','Antibody','TF'.
@@ -234,7 +234,7 @@ set_user_data<-function(medatada,binary_matrix){
     #' @examples
     #' set_user_data(MetaData,Mat01)
 
-    assign("MetaData", medatada, envir = .GlobalEnv)
+    assign("MetaData", metadata, envir = .GlobalEnv)
     assign("Mat01",binary_matrix,envir = .GlobalEnv)
 }
 
