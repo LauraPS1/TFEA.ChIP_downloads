@@ -579,8 +579,6 @@ GeneID2entrez<-function(gene.IDs,return.Matrix = F){
     requireNamespace("GenomicFeatures")
 
     Genes<-GenomicFeatures::genes(TxDb.Hsapiens.UCSC.hg19.knownGene)
-    GeneNames<-biomaRt::select(org.Hs.eg.db, Genes$gene_id, c("SYMBOL", "ENSEMBL"))
-
     suppressMessages(GeneNames<-biomaRt::select(org.Hs.eg.db, Genes$gene_id, c("SYMBOL", "ENSEMBL")))#suppressWarnings added to avoid 'select()' returned 1:many mapping between keys and columns
 
     if(grepl("ENSG0",gene.IDs[1])==T){ID.type<-"ENSEMBL"
