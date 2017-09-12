@@ -256,7 +256,7 @@ get_chip_index<-function(database = "g",TFfilter = NULL){
 
     requireNamespace("dplyr")
     requireNamespace("utils")
-    if(exists("MetaData")==F){data("MetaData",package = "TFEA.ChIP")}
+    if(exists("MetaData")==F){data("MetaData",package = "TFEA.ChIP",envir = environment())}
     if(is.null(TFfilter)){
         Index<-dplyr::select(MetaData,Accession,TF)
         database<-tolower(database)
@@ -293,14 +293,13 @@ contingency_matrix<-function(test_list,control_list,chip_index=get_chip_index())
     requireNamespace("utils")
 
     if (missing(control_list)){ # Generating control gene list in case is not provided.
-        suppressMessages(require("TxDb.Hsapiens.UCSC.hg19.knownGene",quietly = T))
         Genes<-GenomicFeatures::genes(TxDb.Hsapiens.UCSC.hg19.knownGene)$gene_id
         control_list<-Genes[!(Genes %in% test_list)]
         rm(Genes)
     }else{
         control_list<-control_list[!(control_list %in% test_list)]
     }
-    if (exists("Mat01")==F){data("Mat01",package = "TFEA.ChIP")}
+    if (exists("Mat01")==F){data("Mat01",package = "TFEA.ChIP",envir = environment())}
     Matrix1<-Mat01[rownames(Mat01)%in%test_list,colnames(Mat01)%in%chip_index$Accession]
     Matrix2<-Mat01[rownames(Mat01)%in%control_list,colnames(Mat01)%in%chip_index$Accession]
 
@@ -494,7 +493,7 @@ GSEA.run<-function(gene.list,chip_index=get_chip_index(),get.RES = F,RES.filter 
     requireNamespace("stats")
     requireNamespace("utils")
 
-    if (exists("Mat01")==F){data("Mat01",package = "TFEA.ChIP")}
+    if (exists("Mat01")==F){data("Mat01",package = "TFEA.ChIP",envir = environment())}
     Mat01<-Mat01[,colnames(Mat01)%in%chip_index$Accession]
 
     shuffledGL<-GSEA.Shuffling(gene.list,1000)  # Generate random gene lists to
@@ -676,7 +675,7 @@ plot_CM<-function(CM.statMatrix,plot_title = NULL,specialTF = NULL,TF_colors = N
         CM.statMatrix$highlight<-highlight_list[[1]]
         colores<-highlight_list[[2]]
     }
-    if (exists("MetaData")==F){data("MetaData",package = "TFEA.ChIP")}
+    if (exists("MetaData")==F){data("MetaData",package = "TFEA.ChIP",envir = environment())}
     MetaData<-MetaData[MetaData$Accession%in%CM.statMatrix$Accession,]
     MetaData<-dplyr::arrange(MetaData,Accession)
     CM.statMatrix<-dplyr::arrange(CM.statMatrix,Accession)
@@ -788,7 +787,7 @@ plot_GSEA_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_col
         }
     }
     tabla.Enr$symbol<-simbolo
-    if (exists("MetaData")==F){data("MetaData",package = "TFEA.ChIP")}
+    if (exists("MetaData")==F){data("MetaData",package = "TFEA.ChIP",envir = environment())}
     MetaData<-MetaData[MetaData$Accession%in%tabla.Enr$Accession,]
     MetaData<-dplyr::arrange(MetaData,Accession)
     tabla.Enr<-dplyr::arrange(tabla.Enr,Accession)
@@ -868,7 +867,7 @@ plot_GSEA_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,lin
     chip_index<-get_chip_index("g")
     tf<-chip_index[chip_index[,1]%in%accessions,]
     rm(chip_index)
-    if (exists("MetaData")==F){data("MetaData",package = "TFEA.ChIP")}
+    if (exists("MetaData")==F){data("MetaData",package = "TFEA.ChIP",envir = environment())}
     MetaData<-MetaData[MetaData$Accession%in%accessions,]
     Accessions<-vector()
     Cell<-vector()
@@ -894,17 +893,20 @@ plot_GSEA_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,lin
                                  y=tabla$RES[[accessions[1]]],
                                  type="scatter", mode="lines", line=list(color=line.colors[1],dash=line.styles[1]),
                                  name=paste0(tabla$Accessions[1]," - ",tabla$TF[1]),
-                                 text=paste0(tabla$Accessions[1]," - ",tabla$TF[1],'<br>Cell: ',tabla$Cell[1],", ",tabla$Treatment[1]))
+                                 text=paste0(tabla$Accessions[1]," - ",tabla$TF[1],'<br>Cell: ',tabla$Cell[1],
+                                             ' <br>Treatment: ',tabla$Treatment[1]))
             }else if (i>1 & i<length(accessions)){
                 grafica<-plotly::add_trace(p = grafica,y=tabla$RES[[accessions[i]]],
                                    type="scatter", mode="lines",line=list(color=line.colors[i],dash=line.styles[i]),
                                    name=paste0(tabla$Accessions[i]," - ",tabla$TF[i]),
-                                   text=paste0(tabla$Accessions[i]," - ",tabla$TF[i],'<br>Cell: ',tabla$Cell[i],", ",tabla$Treatment[i]))
+                                   text=paste0(tabla$Accessions[i]," - ",tabla$TF[i],'<br>Cell: ',tabla$Cell[i],
+                                               ' <br>Treatment: ',tabla$Treatment[i]))
             }else if (i==length(accessions)){
                 grafica<-plotly::add_trace(p = grafica,y=tabla$RES[[accessions[i]]],
                                    type="scatter", mode="lines",line=list(color=line.colors[i],dash=line.styles[i]),
                                    name=paste0(tabla$Accessions[i]," - ",tabla$TF[i]),
-                                   text=paste0(tabla$Accessions[i]," - ",tabla$TF[i],'<br>Cell: ',tabla$Cell[i],", ",tabla$Treatment[i]))%>%
+                                   text=paste0(tabla$Accessions[i]," - ",tabla$TF[i],'<br>Cell: ',tabla$Cell[i],
+                                               ' <br>Treatment: ',tabla$Treatment[i]))%>%
                     plotly::layout(title=plot_title,
                            xaxis = list(title = "Argument"),
                            yaxis = list (title = "ES"))
@@ -914,7 +916,9 @@ plot_GSEA_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,lin
         grafica<-plotly::plot_ly(tabla,x=c(1:length(tabla$RES[[1]])),
                          y=tabla$RES[[accessions[1]]],
                          type="scatter", mode="lines", line=list(color=line.colors[1],dash=line.styles[1]),
-                         name=paste0(tabla$Accessions[1]," - ",tabla$TF[1]))%>%
+                         name=paste0(tabla$Accessions[1]," - ",tabla$TF[1]),
+                         text=paste0(tabla$Accessions[i]," - ",tabla$TF[i],'<br>Cell: ',tabla$Cell[i],
+                                     ' <br>Treatment: ',tabla$Treatment[i]))%>%
             plotly::layout(title=plot_title,
                    xaxis = list(title = "Argument"),
                    yaxis = list (title = "ES"))
@@ -1000,7 +1004,7 @@ plot_RES<-function(GSEA.runningSum,LFC,plot_title = NULL,line.colors = NULL,line
     chip_index<-get_chip_index("g")
     tf<-chip_index[chip_index[,1]%in%accessions,]
     rm(chip_index)
-    if (exists("MetaData")==F){data("MetaData",package = "TFEA.ChIP")}
+    if (exists("MetaData")==F){data("MetaData",package = "TFEA.ChIP",envir = environment())}
     MetaData<-MetaData[MetaData$Accession%in%accessions,]
 
     Accessions<-vector()
@@ -1027,17 +1031,20 @@ plot_RES<-function(GSEA.runningSum,LFC,plot_title = NULL,line.colors = NULL,line
                                  y=tabla$RES[[accessions[1]]],
                                  type="scatter", mode="lines", line=list(color=line.colors[1],dash=line.styles[1]),
                                  name=paste0(tabla$Accessions[1]," - ",tabla$TF[1]),
-                                 text=paste0(tabla$Accessions[1]," - ",tabla$TF[1],'<br>Cell: ',tabla$Cell[1],", ",tabla$Treatment[1]))
+                                 text=paste0(tabla$Accessions[1]," - ",tabla$TF[1],'<br>Cell: ',tabla$Cell[1],
+                                             ' <br>Treatment: ',tabla$Treatment[1]))
             }else if (i>1 & i<length(accessions)){
                 grafica<-plotly::add_trace(p = grafica,y=tabla$RES[[accessions[i]]],
                                    type="scatter", mode="lines",line=list(color=line.colors[i],dash=line.styles[i]),
                                    name=paste0(tabla$Accessions[i]," - ",tabla$TF[i]),
-                                   text=paste0(tabla$Accessions[i]," - ",tabla$TF[i],'<br>Cell: ',tabla$Cell[i],", ",tabla$Treatment[i]))
+                                   text=paste0(tabla$Accessions[i]," - ",tabla$TF[i],'<br>Cell: ',tabla$Cell[i],
+                                               ' <br>Treatment: ',tabla$Treatment[i]))
             }else if (i==length(accessions)){
                 grafica<-plotly::add_trace(p = grafica,y=tabla$RES[[accessions[i]]],
                                    type="scatter", mode="lines",line=list(color=line.colors[i],dash=line.styles[i]),
                                    name=paste0(tabla$Accessions[i]," - ",tabla$TF[i]),
-                                   text=paste0(tabla$Accessions[i]," - ",tabla$TF[i],'<br>Cell: ',tabla$Cell[i],", ",tabla$Treatment[i]))%>%
+                                   text=paste0(tabla$Accessions[i]," - ",tabla$TF[i],'<br>Cell: ',tabla$Cell[i],
+                                               ' <br>Treatment: ',tabla$Treatment[i]))%>%
                     plotly::layout(title=plot_title,
                            xaxis = list(title = "Argument"),
                            yaxis = list (title = "ES"))
@@ -1047,7 +1054,9 @@ plot_RES<-function(GSEA.runningSum,LFC,plot_title = NULL,line.colors = NULL,line
         grafica<-plotly::plot_ly(tabla,x=c(1:length(tabla$RES[[1]])),
                          y=tabla$RES[[accessions[1]]],
                          type="scatter", mode="lines", line=list(color=line.colors[1],dash=line.styles[1]),
-                         name=paste0(tabla$Accessions[1]," - ",tabla$TF[1]))%>%
+                         name=paste0(tabla$Accessions[1]," - ",tabla$TF[1]),
+                         text=paste0(tabla$Accessions[i]," - ",tabla$TF[i],'<br>Cell: ',tabla$Cell[i],
+                                     ' <br>Treatment: ',tabla$Treatment[i]))%>%
             plotly::layout(title=plot_title,
                    xaxis = list(title = "Argument"),
                    yaxis = list (title = "ES"))
