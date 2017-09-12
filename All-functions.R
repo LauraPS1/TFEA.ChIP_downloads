@@ -1,3 +1,11 @@
+################### IMPORTS ####
+#' @importFrom GenomicFeatures genes
+#' @importFrom GenomicRanges GRanges distanceToNearest
+#' @importFrom IRanges IRanges
+#' @importFrom biomaRt select
+#' @importFrom dplyr "%>%" arrange
+#' @importFrom grDevices colorRamp
+#' @importFrom stats fisher.test p.adjust
 ################### FUNCTIONS ####
 
 txt2GR<-function(fileTable,format,GRfolder,fileMetaData){
