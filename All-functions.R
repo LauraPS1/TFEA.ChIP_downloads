@@ -6,6 +6,8 @@
 #' @importFrom dplyr "%>%" arrange
 #' @importFrom grDevices colorRamp
 #' @importFrom stats fisher.test p.adjust
+#' @import TxDb.Hsapiens.UCSC.hg19.knownGene
+#' @import org.Hs.eg.db
 ################### FUNCTIONS ####
 
 txt2GR<-function(fileTable,format,GRfolder,fileMetaData){
