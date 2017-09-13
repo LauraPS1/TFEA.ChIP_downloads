@@ -14,7 +14,7 @@ for each factor determined by a Fisher’s exact test.
 
 * GSEA analysis, based on the basic GSEA algorithm for R<sup>[4][5]</sup>.
 <br>
-1: ENCODE Project Consortium (2012) Nature 489, 57-74)<br>
+1: ENCODE Project Consortium (2012) Nature 489, 57-74<br>
 2: Edgar, R et al. (2002) Nucleic Acids Res. 30:207-10<br>
 3: Barrett, T et al. (2013) Nucleic Acids Res. 41(Database issue):D991-5<br>
 4: Subramanian, Tamayo, et al. (2005) PNAS 102, 15545-15550<br>
