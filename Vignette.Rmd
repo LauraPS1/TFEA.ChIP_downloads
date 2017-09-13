@@ -15,7 +15,8 @@ To overcome these limitations, TFEA.ChIP exploits the vast amount of publicly av
 The package includes a set of tools to customize the ChIP data, perform enrichment analysis and visualize the results. The package implements two enrichment analysis methods:
 
 - Analysis of the association of TFBS and differential expression from 2x2 tables recording the presence of binding sites for a given TF in DE and control genes. The statistical significance of the association for each factor determined by a Fisher's exact test.
-- GSEA analysis, based on the basic GSEA algorithm for R^[Subramanian, Tamayo, et al. (2005) PNAS 102, 15545-15550] ^[Mootha, Lindgren, et al. (2003) Nat Genet 34, 267-273]
+- GSEA analysis, based on the core function of the GSEA algorithm for R^[Subramanian, Tamayo, et al. (2005) PNAS 102, 15545-15550] ^[Mootha, Lindgren, et al. (2003) Nat Genet 34, 267-273], GSEA.EnrichmentScore
+
 
 # Analysis Example
 
@@ -138,7 +139,7 @@ The function will perform a GSEA-based analysis on the input gene list. The outp
 * When **False**, the function returns a data frame storing Accession ID and transcription factor of everi ChIP-Seq included in the analysis and their maximum Enrichment Score and its p-value.
 * When **True**, the function returns a list of three elements, the enrichment data frame previously mentioned, and also lists of *Running Enrichment Scores (RES)* and *indicators* -arrays the same length that store the Running Enrichment Score and the matches/missmatches between the input gene list and every ChIP-Seq experiment. Additionaly, its available to restrict the amount of RES and indicators we store using the variable *RES.filter*.
 ```{r eval=TRUE, echo=T}
-GSEA.result <- GSEA.run(Arranged.Genes$Gene,chip_index,get.RES = T,RES.filter = c("EPAS1","HIF1A","ARNT","MXI1"))
+GSEA.result <- GSEA_run(Arranged.Genes$Gene,chip_index,get.RES = T,RES.filter = c("EPAS1","HIF1A","ARNT","MXI1"))
 ```
 
 
