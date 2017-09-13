@@ -1,5 +1,5 @@
 ---
-title: "TFEA.ChIP: a tool kit transcription factor binding site enrichment analysis capitalizing on ChIP-seq datasets"
+title: "TFEA.ChIP: a tool kit for transcription factor binding site enrichment analysis capitalizing on ChIP-seq datasets"
 author: "Laura Puente-Santamaria, Luis del Peso"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
@@ -9,7 +9,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 # Introduction
-The identification of the transcription factor (TF) responsible for the coregulation of an specific set of genes is common problem in transcriptomics. In the most simple scenario, the comparison of the transcriptome of cells or organisms in two conditions leads to the identification of a set of differentially expressed (DE) genes and the underlying assumption is that one or a few TFs regulate the expression of those genes. 
+The identification of the transcription factor (TF) responsible for the coregulation of an specific set of genes is a common problem in transcriptomics. In the most simple scenario, the comparison of the transcriptome of cells or organisms in two conditions leads to the identification of a set of differentially expressed (DE) genes and the underlying assumption is that one or a few TFs regulate the expression of those genes. 
 Traditionally, the identification of the relevant TFs has relied on the use of position weight matrices (PWMs) to predict transcription factor binding sites (TFBSs) proximal to the DE genes (Wasserman and Sandelin, 2004). The comparison of predicted TFBS in DE versus control genes reveals factors that are significantly enriched in the DE gene set. The prediction of TFBS using these approaches have been useful to narrow down potential binding sites, but can suffer from high rates of false positives. In addition, this approach is limited by design to sequence-specific transcription factors (TF) and thus unable to identify cofactors that bind indirectly to target genes. 
 To overcome these limitations, TFEA.ChIP exploits the vast amount of publicly available ChIP-seq datasets to determine TFBS proximal to a given set of genes and computes enrichment analysis based on this experimentally-derived rich information. Specifically TFEA.ChIP, uses information derived from the hundreds of ChIP-seq experiments from the ENCODE Consortium ^[ENCODE Project Consortium (2012) Nature 489, 57-74)] expanded to include additional datasets contributed to GEO database^[Edgar, R et al. (2002) Nucleic Acids Res. 30:207-10] ^[Barrett, T et al. (2013) Nucleic Acids Res. 41(Database issue):D991-5] by individual laboratories representing the binding sites of factors not assayed by ENCODE. 
 The package includes a set of tools to customize the ChIP data, perform enrichment analysis and visualize the results. The package implements two enrichment analysis methods:
