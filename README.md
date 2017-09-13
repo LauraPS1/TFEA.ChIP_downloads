@@ -12,7 +12,7 @@ two enrichment analysis methods:
 of binding sites for a given TF in DE and control genes. The statistical significance of the association
 for each factor determined by a Fisher’s exact test.
 
-* GSEA analysis, based on the basic GSEA algorithm for R<sup>[4][5]</sup>.
+* GSEA analysis, based on the core function of the GSEA algorithm for R<sup>[4][5]</sup>, *GSEA.EnrichmentScore*.
 <br>
 1: ENCODE Project Consortium (2012) Nature 489, 57-74<br>
 2: Edgar, R et al. (2002) Nucleic Acids Res. 30:207-10<br>
