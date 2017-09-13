@@ -6,6 +6,7 @@
 #' @importFrom dplyr "%>%" arrange
 #' @importFrom grDevices colorRamp
 #' @importFrom stats fisher.test p.adjust
+#' @importFrom utils data
 #' @import TxDb.Hsapiens.UCSC.hg19.knownGene
 #' @import org.Hs.eg.db
 ################### FUNCTIONS ####
@@ -133,18 +134,18 @@ txt2GR<-function(fileTable,format,GRfolder,fileMetaData){
     }
 }
 
-GR2id_db<-function(Dnase.db,gr.list,GRfolder){
+GR2tfbs_db<-function(Dnase.db,gr.list,GRfolder){
 
     #' @title Makes a TF-gene binding database
-    #' @description GR2id_db generates a TF-gene binding database from ChIP-Seq peak coordinates
+    #' @description GR2tfbs_db generates a TF-gene binding database from ChIP-Seq peak coordinates
     #' in GenomicRange objects.
     #' @param Dnase.db GenomicRanges object containing a database of Dnase hipersensitive sites
     #' @param gr.list Vector of paths to .Rdata files containing each one a GenomicRanges object (output of txt2GR)
     #' @param GRfolder Path to the folder storing the .Rdata files.
     #' @return List of vectors, one for every ChIP-Seq, storing the IDs of the genes to which the TF bound in the ChIP-Seq.
-    #' @export GR2id_db
+    #' @export GR2tfbs_db
     #' @examples
-    #' GR2id_db(Dnase.db=DnaseHS.db, gr.list=dir("~/folder/GR"),GRfolder="~/folder/GR")
+    #' GR2tfbs_db(Dnase.db=DnaseHS.db, gr.list=dir("~/folder/GR"),GRfolder="~/folder/GR")
 
     if(!requireNamespace("S4Vectors", quietly = TRUE)){
         stop("S4Vectors package needed for this function to work. Please install it.",
@@ -204,16 +205,16 @@ SearchID<-function(GeneID,id_db){
     return(TF_row)
 }
 
-SearchIDlist<-function(GeneList,id_db){
+makeTFBSmatrix<-function(GeneList,id_db){
 
     #' @title Function to search for a list of entrez gene IDs.
     #' @description Function to search for a list of entrez gene IDs in a  TF-gene binding data base.
     #' @param GeneList Array of gene Entrez IDs
     #' @param id_db TF - gene binding database.
     #' @return 1/0 matrix. Each row represents a gene, each column, a ChIP-Seq file.
-    #' @export SearchIDlist
+    #' @export makeTFBSmatrix
     #' @examples
-    #' SearchIDlist(GeneList,id_db)
+    #' makeTFBSmatrix(GeneList,id_db)
 
     for (i in 1:length(GeneList)){
 
@@ -246,6 +247,45 @@ set_user_data<-function(metadata,binary_matrix){
 
     assign("MetaData", metadata, envir = .GlobalEnv)
     assign("Mat01",binary_matrix,envir = .GlobalEnv)
+}
+
+GeneID2entrez<-function(gene.IDs,return.Matrix = F){
+
+    #' @title Translates gene IDs from Gene Symbol or Ensemble Gene ID to Entrez Gene ID.
+    #' @description Translates gene IDs from Gene Symbol or Ensemble Gene ID to Entrez Gene ID using the IDs approved by HGNC.
+    #' When translating from Gene Symbol, keep in mind that many genes have been given more than one symbol through the years.
+    #' This function will return the Entrez ID corresponding to the currently approved symbols if they exist, otherwise NA is returned
+    #' In addition some genes might map to more than one Entrez ID, in this case gene is assigned to the first match and a warning is displayed.
+    #' @param gene.IDs Array of Gene Symbols or Ensemble Gene IDs.
+    #' @param return.Matrix T/F. When TRUE, the function returns a matrix[n,2], one column with the gene symbols or Ensemble IDs, another with their respective Entrez IDs.
+    #' @return Vector or matrix containing the Entrez IDs(or NA) corresponding to every element of the input.
+    #' @export GeneID2entrez
+    #' @examples
+    #' GeneID2entrez(c("KLHL13","PROM1","ZNF663P","GYS1","LPHN3","ERO1L","EGLN3"))
+    #' GeneID2entrez(c("ENSG00000121410","ENSG00000156006","ENSG00000196839"),return.Matrix=T)
+
+    requireNamespace("biomaRt")
+    requireNamespace("GenomicFeatures")
+
+    Genes<-GenomicFeatures::genes(TxDb.Hsapiens.UCSC.hg19.knownGene)
+    suppressMessages(GeneNames<-biomaRt::select(org.Hs.eg.db, Genes$gene_id, c("SYMBOL", "ENSEMBL")))#suppressWarnings added to avoid 'select()' returned 1:many mapping between keys and columns
+
+    if(grepl("ENSG0",gene.IDs[1])==T){ID.type<-"ENSEMBL"
+    }else{ID.type<-"SYMBOL"}
+
+    tmp<-match(as.character(gene.IDs),GeneNames[,ID.type])
+    tmp2<-match(GeneNames[,ID.type],as.character(gene.IDs))
+
+    if(sum(duplicated(tmp2[!is.na(tmp2)]))>0){warning("Some genes returned 1:many mapping to ENTREZ ID. Genes were assigned the first ENTREZ ID match found.",call. =F)}
+
+    cat("Done! ",length(tmp[!is.na(tmp)])," genes of ",length(tmp)," successfully translated.\n")
+    if (length(tmp[is.na(tmp)])>0){cat("Couldn't find Entrez IDs for ",length(tmp[is.na(tmp)])," genes (NAs returned instead).\n")}
+
+    if(return.Matrix==T){
+        return(data.frame(GENE.ID=gene.IDs,ENTREZ.ID=GeneNames[tmp,"ENTREZID"]))
+    }else{
+        return(GeneNames[tmp[!is.na(tmp)],"ENTREZID"])
+    }
 }
 
 get_chip_index<-function(database = "g",TFfilter = NULL){
@@ -571,78 +611,6 @@ GSEA.run<-function(gene.list,chip_index=get_chip_index(),get.RES = F,RES.filter 
     }
 }
 
-GeneID2entrez<-function(gene.IDs,return.Matrix = F){
-
-    #' @title Translates gene IDs from Gene Symbol or Ensemble Gene ID to Entrez Gene ID.
-    #' @description Translates gene IDs from Gene Symbol or Ensemble Gene ID to Entrez Gene ID using the IDs approved by HGNC.
-    #' When translating from Gene Symbol, keep in mind that many genes have been given more than one symbol through the years.
-    #' This function will return the Entrez ID corresponding to the currently approved symbols if they exist, otherwise NA is returned
-    #' In addition some genes might map to more than one Entrez ID, in this case gene is assigned to the first match and a warning is displayed.
-    #' @param gene.IDs Array of Gene Symbols or Ensemble Gene IDs.
-    #' @param return.Matrix T/F. When TRUE, the function returns a matrix[n,2], one column with the gene symbols or Ensemble IDs, another with their respective Entrez IDs.
-    #' @return Vector or matrix containing the Entrez IDs(or NA) corresponding to every element of the input.
-    #' @export GeneID2entrez
-    #' @examples
-    #' GeneID2entrez(c("KLHL13","PROM1","ZNF663P","GYS1","LPHN3","ERO1L","EGLN3"))
-    #' GeneID2entrez(c("ENSG00000121410","ENSG00000156006","ENSG00000196839"),return.Matrix=T)
-
-    requireNamespace("biomaRt")
-    requireNamespace("GenomicFeatures")
-
-    Genes<-GenomicFeatures::genes(TxDb.Hsapiens.UCSC.hg19.knownGene)
-    suppressMessages(GeneNames<-biomaRt::select(org.Hs.eg.db, Genes$gene_id, c("SYMBOL", "ENSEMBL")))#suppressWarnings added to avoid 'select()' returned 1:many mapping between keys and columns
-
-    if(grepl("ENSG0",gene.IDs[1])==T){ID.type<-"ENSEMBL"
-    }else{ID.type<-"SYMBOL"}
-
-    tmp<-match(as.character(gene.IDs),GeneNames[,ID.type])
-    tmp2<-match(GeneNames[,ID.type],as.character(gene.IDs))
-
-    if(sum(duplicated(tmp2[!is.na(tmp2)]))>0){warning("Some genes returned 1:many mapping to ENTREZ ID. Genes were assigned the first ENTREZ ID match found.",call. =F)}
-
-    cat("Done! ",length(tmp[!is.na(tmp)])," genes of ",length(tmp)," successfully translated.\n")
-    if (length(tmp[is.na(tmp)])>0){cat("Couldn't find Entrez IDs for ",length(tmp[is.na(tmp)])," genes (NAs returned instead).\n")}
-
-    if(return.Matrix==T){
-        return(data.frame(GENE.ID=gene.IDs,ENTREZ.ID=GeneNames[tmp,"ENTREZID"]))
-    }else{
-        return(GeneNames[tmp[!is.na(tmp)],"ENTREZID"])
-    }
-}
-
-highlight.TF<-function(table,column,specialTF,colores){
-
-    #' @title Highlight certain transcription factors in a plotly graph.
-    #' @description Function to highlight certain transcription factors using different colors in a plotly graph.
-    #' @param table Enrichment matrix/data.frame.
-    #' @param column Column # that stores the TF name in the matrix/df.
-    #' @param specialTF Named vector containing TF names as they appear in the enrichment matrix/df and nicknames for their color group.
-    #' Example:
-    #'           specialTF<-c("HIF1A","HIF1A-hx","EPAS1","EPAS1-hx","ARNT","ARNT-hx","SIN3A","SAP30","MXI1")
-    #'           names(specialTF)<-c("HIF","HIF","HIF","HIF","HIF","HIF","SIN3A","SAP30","MXI1")
-    #' @param colores Vector specifying the shade for every color group.
-    #' @return List of two objects:
-    #' A vector to attach to the enrichment matrix/df pointing out the color group of every row.
-    #' A named vector connecting each color group to the chosen color.
-    # examples
-    # highlight.TF(CM.statMatrix_UP,4,specialTF,colors)
-
-
-    highlight<-rep("Other",length(table[,1]))
-    for (i in 1:length(specialTF)){
-
-        for (j in 1:length(table[,1])){
-
-            if(!is.na(table[j,column])){
-                if (table[j,column]==specialTF[i]){highlight[j]<-names(specialTF)[i]}
-            }
-        }
-    }
-    colores<-c("azure4",colores)
-    names(colores)<-c("Other",unique(names(specialTF)))
-    return(list(highlight,colores))
-}
-
 plot_CM<-function(CM.statMatrix,plot_title = NULL,specialTF = NULL,TF_colors = NULL){
 
     #' @title Makes an interactive html plot from an enrichment table.
@@ -738,7 +706,7 @@ plot_CM<-function(CM.statMatrix,plot_title = NULL,specialTF = NULL,TF_colors = N
     return(p)
 }
 
-plot_GSEA_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_colors = NULL){
+plot_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_colors = NULL){
 
     #' @title Plots Enrichment Score from the output of GSEA.run.
     #' @description Function to plot the Enrichment Score of every member of the ChIPseq binding database.
@@ -749,10 +717,10 @@ plot_GSEA_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_col
     #' The name of each element specifies its color group, i.e.: naming elements HIF1A and HIF1B as "HIF" to represent them with the same color.
     #' @param TF_colors (Optional) Colors to highlight TFs chosen in specialTF.
     #' @return Plotly object with a scatter plot -Enrichment scores- and a heatmap -log2(fold change) bar-.
-    #' @export plot_GSEA_ES
+    #' @export plot_ES
     #' @examples
-    #' plot_GSEA_ES(GSEA_result,LFC,"Transcription Factor Enrichment",specialTF,colors)
-    #' plot_GSEA_ES(GSEA_result=GSEA_result,LFC=LFC)
+    #' plot_ES(GSEA_result,LFC,"Transcription Factor Enrichment",specialTF,colors)
+    #' plot_ES(GSEA_result=GSEA_result,LFC=LFC)
 
     if(!requireNamespace("plotly", quietly = TRUE)){
         stop("plotly package needed for this function to work. Please install it.",
@@ -840,7 +808,7 @@ plot_GSEA_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_col
     return(graf)
 }
 
-plot_GSEA_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.styles = NULL){
+plot_all_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.styles = NULL){
 
     #' @title Plots all the RES stored in a GSEA.run output.
     #' @description Function to plot all the RES stored in a GSEA.run output.
@@ -850,10 +818,10 @@ plot_GSEA_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,lin
     #' @param line.colors (Optional) Vector of colors for each line.
     #' @param line.styles (Optional) Vector of line styles for each line ("solid"/"dash"/"longdash").
     #' @return Plotly object with a line plot -running sums- and a heatmap -log2(fold change) bar-.
-    #' @export plot_GSEA_RES
+    #' @export plot_all_RES
     #' @examples
-    #' plot_GSEA_RES(GSEA_result,LFC,"Transcription Factor Enrichment",colors.RES,lines.RES)
-    #' plot_GSEA_RES(GSEA_result=GSEA_result,LFC=LFC)
+    #' plot_all_RES(GSEA_result,LFC,"Transcription Factor Enrichment",colors.RES,lines.RES)
+    #' plot_all_RES(GSEA_result=GSEA_result,LFC=LFC)
 
     if(!requireNamespace("plotly", quietly = TRUE)){
         stop("plotly package needed for this function to work. Please install it.",
@@ -941,44 +909,7 @@ plot_GSEA_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,lin
     return(graf)
 }
 
-get_LFC_bar<-function(LFC){
-
-    #' @title Plots a color bar from log2(Fold Change) values.
-    #' @description Function to plot a color bar from log2(Fold Change) values from an expression experiment.
-    #' @param LFC Vector of log2(fold change) values arranged from higher to lower. Use ony the values of genes that have an Entrez ID.
-    #' @return Plotly heatmap plot -log2(fold change) bar-.
-    # examples
-    # get_LFC_bar(arranged.log2FC.array)
-
-    if(!requireNamespace("scales", quietly = TRUE)){
-        stop("scales package needed for this function to work. Please install it.",
-             call. = FALSE)
-    }
-    if(!requireNamespace("plotly", quietly = TRUE)){
-        stop("plotly package needed for this function to work. Please install it.",
-             call. = FALSE)
-    }
-    requireNamespace("grDevices")
-    requireNamespace("dplyr")
-    requireNamespace("plotly")
-    requireNamespace("scales")
-
-    vals <- scales::rescale(LFC)
-    o <- order(vals, decreasing = F)
-    cols1 <- scales::col_numeric(grDevices::colorRamp(c("mistyrose","red3")), domain = NULL)(vals[1:length(LFC[LFC>0])])
-    cols2 <- scales::col_numeric(grDevices::colorRamp(c("navy","lightcyan")), domain = NULL)(vals[length(LFC[LFC>0])+1:length(LFC)])
-    cols<-c(cols1,cols2)
-
-    colz <-data.frame(vals[o], cols[o])
-
-    LFC.bar<-plotly::plot_ly(x=c(1:length(LFC)), y=rep(1,length(LFC)),
-                     z = LFC, type = "heatmap",colorscale=colz,showscale = FALSE)%>%
-        plotly::layout(yaxis=list(visible=F))
-
-    return(LFC.bar)
-}
-
-plot_RES<-function(GSEA.runningSum,LFC,plot_title = NULL,line.colors = NULL,line.styles = NULL){
+plot_some_RES<-function(GSEA.runningSum,LFC,plot_title = NULL,line.colors = NULL,line.styles = NULL){
 
     #' @title Plots selected RES from the output of the function GSEA.run.
     #' @description Function to plot selected RES from the output of the function GSEA.run.
@@ -988,10 +919,10 @@ plot_RES<-function(GSEA.runningSum,LFC,plot_title = NULL,line.colors = NULL,line
     #' @param line.colors (Optional) Vector of colors for each line.
     #' @param line.styles (Optional) Vector of line styles for each line (solid/dash/longdash).
     #' @return Plotly object with a line plot -running sums- and a heatmap -log2(fold change) bar-.
-    #' @export plot_RES
+    #' @export plot_some_RES
     #' @examples
-    #' plot_RES(EPAS1.runningSums,LFC,"Transcription Factor Enrichment",colors,lines)
-    #' plot_RES(GSEA.runningSum=EPAS1.runningSums,LFC=LFC)
+    #' plot_some_RES(EPAS1.runningSums,LFC,"Transcription Factor Enrichment",colors,lines)
+    #' plot_some_RES(GSEA.runningSum=EPAS1.runningSums,LFC=LFC)
 
     if(!requireNamespace("plotly", quietly = TRUE)){
         stop("plotly package needed for this function to work. Please install it.",
@@ -1079,3 +1010,72 @@ plot_RES<-function(GSEA.runningSum,LFC,plot_title = NULL,line.colors = NULL,line
     return(graf)
 }
 
+highlight.TF<-function(table,column,specialTF,colores){
+
+    #' @title Highlight certain transcription factors in a plotly graph.
+    #' @description Function to highlight certain transcription factors using different colors in a plotly graph.
+    #' @param table Enrichment matrix/data.frame.
+    #' @param column Column # that stores the TF name in the matrix/df.
+    #' @param specialTF Named vector containing TF names as they appear in the enrichment matrix/df and nicknames for their color group.
+    #' Example:
+    #'           specialTF<-c("HIF1A","HIF1A-hx","EPAS1","EPAS1-hx","ARNT","ARNT-hx","SIN3A","SAP30","MXI1")
+    #'           names(specialTF)<-c("HIF","HIF","HIF","HIF","HIF","HIF","SIN3A","SAP30","MXI1")
+    #' @param colores Vector specifying the shade for every color group.
+    #' @return List of two objects:
+    #' A vector to attach to the enrichment matrix/df pointing out the color group of every row.
+    #' A named vector connecting each color group to the chosen color.
+    # examples
+    # highlight.TF(CM.statMatrix_UP,4,specialTF,colors)
+
+
+    highlight<-rep("Other",length(table[,1]))
+    for (i in 1:length(specialTF)){
+
+        for (j in 1:length(table[,1])){
+
+            if(!is.na(table[j,column])){
+                if (table[j,column]==specialTF[i]){highlight[j]<-names(specialTF)[i]}
+            }
+        }
+    }
+    colores<-c("azure4",colores)
+    names(colores)<-c("Other",unique(names(specialTF)))
+    return(list(highlight,colores))
+}
+
+get_LFC_bar<-function(LFC){
+
+    #' @title Plots a color bar from log2(Fold Change) values.
+    #' @description Function to plot a color bar from log2(Fold Change) values from an expression experiment.
+    #' @param LFC Vector of log2(fold change) values arranged from higher to lower. Use ony the values of genes that have an Entrez ID.
+    #' @return Plotly heatmap plot -log2(fold change) bar-.
+    # examples
+    # get_LFC_bar(arranged.log2FC.array)
+
+    if(!requireNamespace("scales", quietly = TRUE)){
+        stop("scales package needed for this function to work. Please install it.",
+             call. = FALSE)
+    }
+    if(!requireNamespace("plotly", quietly = TRUE)){
+        stop("plotly package needed for this function to work. Please install it.",
+             call. = FALSE)
+    }
+    requireNamespace("grDevices")
+    requireNamespace("dplyr")
+    requireNamespace("plotly")
+    requireNamespace("scales")
+
+    vals <- scales::rescale(LFC)
+    o <- order(vals, decreasing = F)
+    cols1 <- scales::col_numeric(grDevices::colorRamp(c("mistyrose","red3")), domain = NULL)(vals[1:length(LFC[LFC>0])])
+    cols2 <- scales::col_numeric(grDevices::colorRamp(c("navy","lightcyan")), domain = NULL)(vals[length(LFC[LFC>0])+1:length(LFC)])
+    cols<-c(cols1,cols2)
+
+    colz <-data.frame(vals[o], cols[o])
+
+    LFC.bar<-plotly::plot_ly(x=c(1:length(LFC)), y=rep(1,length(LFC)),
+                             z = LFC, type = "heatmap",colorscale=colz,showscale = FALSE)%>%
+        plotly::layout(yaxis=list(visible=F))
+
+    return(LFC.bar)
+}
