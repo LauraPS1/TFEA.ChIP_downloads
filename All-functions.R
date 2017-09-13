@@ -159,31 +159,31 @@ GR2tfbs_db<-function(Dnase.db,gr.list,GRfolder){
 
         load(paste0(GRfolder,"/",gr.list[i]))
 
-        index_cercanos<-suppressWarnings(GenomicRanges::distanceToNearest(gr,Dnase.db,select="all"))
-        index_cercanos<-index_cercanos[!is.na(index_cercanos@elementMetadata@listData$distance)]
-        index_cercanos<-index_cercanos[index_cercanos@elementMetadata@listData$distance<10]
-        inSubject<-S4Vectors::subjectHits(index_cercanos)
+        nearest_index<-suppressWarnings(GenomicRanges::distanceToNearest(gr,Dnase.db,select="all"))
+        nearest_index<-nearest_index[!is.na(nearest_index@elementMetadata@listData$distance)]
+        nearest_index<-nearest_index[nearest_index@elementMetadata@listData$distance<10]
+        inSubject<-S4Vectors::subjectHits(nearest_index)
 
         if(length(inSubject)==0){
             m<-m+1
             next
         }
 
-        listaID<-Dnase.db[inSubject]$gene_id
+        assigned_genes<-Dnase.db[inSubject]$gene_id
 
 
         if (i==1){
-            ID_list<-list(listaID)
-            names(ID_list)[i]<-substr(gr.list[i],1,nchar(gr.list[i])-6)
-            rm(index_cercanos,inSubject,listaID)
+            TFgenes_list<-list(assigned_genes)
+            names(TFgenes_list)[i]<-substr(gr.list[i],1,nchar(gr.list[i])-6)
+            rm(nearest_index,inSubject,assigned_genes)
         }else{
-            ID_list<-c(ID_list,list(listaID))
-            names(ID_list)[i-m]<-substr(gr.list[i],1,nchar(gr.list[i])-6)
-            rm(index_cercanos,inSubject,listaID)
+            TFgenes_list<-c(TFgenes_list,list(assigned_genes))
+            names(TFgenes_list)[i-m]<-substr(gr.list[i],1,nchar(gr.list[i])-6)
+            rm(nearest_index,inSubject,assigned_genes)
         }
     }
 
-    return(ID_list)
+    return(TFgenes_list)
 }
 
 SearchID<-function(GeneID,id_db){
@@ -293,7 +293,7 @@ get_chip_index<-function(database = "g",TFfilter = NULL){
     #' @title Creates a data frame containing accession IDs of ChIP-Seq experiments and TF tested
     #' @description Function to create a data frame containing accession IDs of ChIP-Seq experiments and
     #' the transcription factor tested in each ChIP. This index is required for functions
-    #' like “contingency_matrix” and “GSEA.run” and can also be used as a filter to select
+    #' like “contingency_matrix” and “GSEA_run” and can also be used as a filter to select
     #' specific ChIPs or transcription factors to run an analysis.
     #' @param database Name of the database used: "encode"/"e" or "general"/"g".
     #' @param TFfilter (Optional) Transcription factors of interest.
@@ -306,7 +306,7 @@ get_chip_index<-function(database = "g",TFfilter = NULL){
 
     requireNamespace("dplyr")
     requireNamespace("utils")
-    if(exists("MetaData")==F){data("MetaData",package = "TFEA.ChIP",envir = environment())}
+    if(!exists("MetaData")){data("MetaData",package = "TFEA.ChIP",envir = environment())}
     if(is.null(TFfilter)){
         Index<-dplyr::select(MetaData,Accession,TF)
         database<-tolower(database)
@@ -363,55 +363,55 @@ contingency_matrix<-function(test_list,control_list,chip_index=get_chip_index())
         pos2<-length(chip.vector2[chip.vector2==1])
         neg1<-length(chip.vector1[chip.vector1==0])
         neg2<-length(chip.vector2[chip.vector2==0])
-        CM_gr<-cbind(c(pos1,pos2),c(neg1,neg2))
-        rownames(CM_gr)<-c("Test","Control")
-        colnames(CM_gr)<-c("Positive","Negative")
+        contMatrix<-cbind(c(pos1,pos2),c(neg1,neg2))
+        rownames(contMatrix)<-c("Test","Control")
+        colnames(contMatrix)<-c("Positive","Negative")
 
         if (i==1){
-            CM_list<-list(CM_gr)
-            names(CM_list)[i]<-as.character(chip_index$Accession[i])
-            rm(CM_gr)
+            contMatrix_list<-list(contMatrix)
+            names(contMatrix_list)[i]<-as.character(chip_index$Accession[i])
+            rm(contMatrix)
         }else{
-            CM_list<-c(CM_list,list(CM_gr))
-            names(CM_list)[i]<-as.character(chip_index$Accession[i])
-            rm(CM_gr)
+            contMatrix_list<-c(contMatrix_list,list(contMatrix))
+            names(contMatrix_list)[i]<-as.character(chip_index$Accession[i])
+            rm(contMatrix)
         }
     }
 
-    return(CM_list)
+    return(contMatrix_list)
 }
 
-getCMstats<-function(CM_list,chip_index=get_chip_index()){
+getCMstats<-function(contMatrix_list,chip_index=get_chip_index()){
 
     #' @title Generates a data frame with Accession, TF, OR and p-val from a contingency_matrix output
     #' @description From a list of contingency matrices, such as the output from “contingency_matrix”, this function computes a fisher's exact test for each matrix and generates a data frame that stores
     #' accession ID of a ChIP-Seq experiment, the TF tested in that experiment, and the p-value and the odds ratio resulting
     #' from the test.
-    #' @param CM_list Output of “contingency_matrix”, a list of contingency matrix.
+    #' @param contMatrix_list Output of “contingency_matrix”, a list of contingency matrix.
     #' @param chip_index Output of the function “get_chip_index”, a data frame containing
     #' accession IDs of ChIPs on the database and the TF each one tests. If not provided, the whole internal database will be used
     #' @return Data frame containing accession ID of a ChIP-Seq experiment, the TF tested
     #' in that experiment, raw p-value (-10*log10 pvalue), odds-ratio and FDR-adjusted p-values (-10*log10 adj.pvalue).
     #' @export getCMstats
     #' @examples
-    #' getCMstats(CM_list_UP)
+    #' getCMstats(contMatrix_list_UP)
 
     requireNamespace("stats")
 
-    for (i in 1:length(CM_list)){
-        pval<-stats::fisher.test(x=CM_list[[i]])
+    for (i in 1:length(contMatrix_list)){
+        pval<-stats::fisher.test(x=contMatrix_list[[i]])
         if (i==1){
             pval_list<-list(pval)
-            names(pval_list)[i]<-names(CM_list)[i]
+            names(pval_list)[i]<-names(contMatrix_list)[i]
         }else{
             pval_list<-c(pval_list,list(pval))
-            names(pval_list)[i]<-names(CM_list)[i]
+            names(pval_list)[i]<-names(contMatrix_list)[i]
         }
     }
 
     statMat<-data.frame(Accession=chip_index$Accession,TF=chip_index$TF,p.value=NA,OR=NA)
-    for (idx in names(CM_list)){
-        FTres<-try({stats::fisher.test(x=CM_list[[idx]])},silent = T)
+    for (idx in names(contMatrix_list)){
+        FTres<-try({stats::fisher.test(x=contMatrix_list[[idx]])},silent = T)
         if(class(FTres)=="htest"){
             statMat$p.value[which(statMat$Accession==idx)]<-FTres$p.value
             statMat$OR[which(statMat$Accession==idx)]<-FTres$estimate
@@ -423,7 +423,7 @@ getCMstats<-function(CM_list,chip_index=get_chip_index()){
     return(statMat)
 }
 
-GSEA.EnrichmentScore <- function(gene.list, gene.set, weighted.score.type = 0, correl.vector = NULL) {
+GSEA_EnrichmentScore <- function(gene.list, gene.set, weighted.score.type = 0, correl.vector = NULL) {
 
     # Computes the weighted GSEA score of gene.set in gene.list.
     # The weighted score type is the exponent of the correlation
@@ -463,9 +463,9 @@ GSEA.EnrichmentScore <- function(gene.list, gene.set, weighted.score.type = 0, c
     #' arg.ES: Location in gene.list where the peak running enrichment occurs (peak of the "mountain")
     #' RES: Numerical vector containing the running enrichment score for all locations in the gene list
     #' tag.indicator: Binary vector indicating the location of the gene sets (1's) in the gene list
-    #' @export GSEA.EnrichmentScore
+    #' @export GSEA_EnrichmentScore
     #' @examples
-    #' GSEA.EnrichmentScore(gene.list, ARNT.ChIP.genes, weighted.score.type = 0, correl.vector = NULL)
+    #' GSEA_EnrichmentScore(gene.list, ARNT.ChIP.genes, weighted.score.type = 0, correl.vector = NULL)
 
     tag.indicator <- sign(match(gene.list, gene.set, nomatch=0))
     no.tag.indicator <- 1 - tag.indicator
@@ -504,7 +504,7 @@ GSEA.EnrichmentScore <- function(gene.list, gene.set, weighted.score.type = 0, c
     }
 }
 
-GSEA.Shuffling<-function(gene.list,permutations){
+GSEA_Shuffling<-function(gene.list,permutations){
 
     #' @title Function to create shuffled gene lists to run GSEA.
     #' @description Function to create shuffled gene lists to run GSEA.
@@ -512,7 +512,7 @@ GSEA.Shuffling<-function(gene.list,permutations){
     #' @param permutations Number of shuffled gene vector IDs required.
     #' @return Vector of randomly arranged Entrez IDs.
     # examples
-    # GSEA.Shuffling(gene.list,1000)
+    # GSEA_Shuffling(gene.list,1000)
 
     shuffledGL<-list()
     for(i in 1:permutations){
@@ -522,7 +522,7 @@ GSEA.Shuffling<-function(gene.list,permutations){
     return(shuffledGL)
 }
 
-GSEA.run<-function(gene.list,chip_index=get_chip_index(),get.RES = F,RES.filter = NULL){
+GSEA_run<-function(gene.list,chip_index=get_chip_index(),get.RES = F,RES.filter = NULL){
 
     #' @title Function to run a GSEA analysis with an ID database.
     #' @description Function to run a GSEA analysis with an TF-gene binding database.
@@ -535,22 +535,22 @@ GSEA.run<-function(gene.list,chip_index=get_chip_index(),get.RES = F,RES.filter 
     #' Enrichment.table: data frame containing accession ID, TF name, enrichment score, p-value, and argument of every ChIP-Seq experiment.
     #' RES (optional): list of running sums of every ChIP-Seq
     #' indicators (optional): list of 0/1 vectors that stores the matches (1) and mismatches (0) between the gene list and the gene set.
-    #' @export GSEA.run
+    #' @export GSEA_run
     #' @examples
-    #' GSEA.run(Arranged.Gene.List, chip.index)
-    #' GSEA.run(Arranged.Gene.List, chip.index, get.RES = T, RES.filter =c("SMAD2","SMAD4") )
+    #' GSEA_run(Arranged.Gene.List, chip.index)
+    #' GSEA_run(Arranged.Gene.List, chip.index, get.RES = T, RES.filter =c("SMAD2","SMAD4") )
 
     requireNamespace("stats")
     requireNamespace("utils")
 
-    if (exists("Mat01")==F){data("Mat01",package = "TFEA.ChIP",envir = environment())}
+    if (!exists("Mat01")){data("Mat01",package = "TFEA.ChIP",envir = environment())}
     Mat01<-Mat01[,colnames(Mat01)%in%chip_index$Accession]
 
-    shuffledGL<-GSEA.Shuffling(gene.list,1000)  # Generate random gene lists to
+    shuffledGL<-GSEA_Shuffling(gene.list,1000)  # Generate random gene lists to
                                                 # get a p-value for ESs.
-    EnrichmentScore<-vector()
+    enrichmentScore<-vector()
     pval<-vector()
-    EnrichmentArg<-vector()
+    enrichmentArg<-vector()
 
     if(get.RES==T){
         res<-list()
@@ -563,27 +563,27 @@ GSEA.run<-function(gene.list,chip_index=get_chip_index(),get.RES = F,RES.filter 
         chip.genes<-names(chip.genes[chip.genes==1])
 
         if(length(chip.genes)>10){
-            resultado<-GSEA.EnrichmentScore(gene.list, chip.genes)
+            result<-GSEA_EnrichmentScore(gene.list, chip.genes)
 
             shuffled.ES<-vector()
             for (j in 1:length(shuffledGL)){ # Get ES for the random gene list to compute pval.
-                shuffled.ES[j]<-GSEA.EnrichmentScore(shuffledGL[[j]], chip.genes)$ES
+                shuffled.ES[j]<-GSEA_EnrichmentScore(shuffledGL[[j]], chip.genes)$ES
             }
 
-            EnrichmentScore[i]<-resultado$ES
-            pval[i]<-sum(abs(shuffled.ES) >= abs(resultado$ES)) / 1000
-            EnrichmentArg[i]<-resultado$arg.ES
+            enrichmentScore[i]<-result$ES
+            pval[i]<-sum(abs(shuffled.ES) >= abs(result$ES)) / 1000
+            enrichmentArg[i]<-result$arg.ES
 
             if(get.RES==T & missing(RES.filter)){ # Store running sums of selected TFs.
-                res<-c(res,list(resultado$RES))
+                res<-c(res,list(result$RES))
                 names(res)[length(res)]<-chip_index$Accession[i]
-                ind<-c(ind,list(resultado$indicator))
+                ind<-c(ind,list(result$indicator))
                 names(ind)[length(ind)]<-chip_index$Accession[i]
             }else if(get.RES==T & missing(RES.filter)==F){
                 if(chip_index$TF[i]%in%RES.filter){
-                    res<-c(res,list(resultado$RES))
+                    res<-c(res,list(result$RES))
                     names(res)[length(res)]<-chip_index$Accession[i]
-                    ind<-c(ind,list(resultado$indicator))
+                    ind<-c(ind,list(result$indicator))
                     names(ind)[length(ind)]<-chip_index$Accession[i]
                 }
             }
@@ -591,23 +591,23 @@ GSEA.run<-function(gene.list,chip_index=get_chip_index(),get.RES = F,RES.filter 
     }
     pval.adj<-stats::p.adjust(pval,"fdr") # Adjust pvalues
 
-    tablaEnriquecimiento<-cbind(chip_index$Accession,chip_index$TF,as.numeric(EnrichmentScore),
-                                as.numeric(pval.adj),as.numeric(EnrichmentArg))
+    enrichmentTable<-cbind(chip_index$Accession,chip_index$TF,as.numeric(enrichmentScore),
+                                as.numeric(pval.adj),as.numeric(enrichmentArg))
 
-    tablaEnriquecimiento<-as.data.frame(tablaEnriquecimiento,stringsAsFactors=F)
-    colnames(tablaEnriquecimiento)<-c("Accession","TF","ES","pval.ES","Arg.ES")
-    tablaEnriquecimiento$ES<-as.numeric(tablaEnriquecimiento$ES)
-    tablaEnriquecimiento$pval.ES<-as.numeric(tablaEnriquecimiento$pval.ES)
-    tablaEnriquecimiento$Arg.ES<-as.numeric(tablaEnriquecimiento$Arg.ES)
+    enrichmentTable<-as.data.frame(enrichmentTable,stringsAsFactors=F)
+    colnames(enrichmentTable)<-c("Accession","TF","ES","pval.ES","Arg.ES")
+    enrichmentTable$ES<-as.numeric(enrichmentTable$ES)
+    enrichmentTable$pval.ES<-as.numeric(enrichmentTable$pval.ES)
+    enrichmentTable$Arg.ES<-as.numeric(enrichmentTable$Arg.ES)
 
-    tablaEnriquecimiento<-tablaEnriquecimiento[!is.na(tablaEnriquecimiento$pval.ES),]
+    enrichmentTable<-enrichmentTable[!is.na(enrichmentTable$pval.ES),]
 
     if(get.RES==T){
-        resultados<-list(tablaEnriquecimiento,res,ind)
-        names(resultados)<-c("Enrichment.table","RES","indicators")
-        return(resultados)
+        GSEA_results<-list(enrichmentTable,res,ind)
+        names(GSEA_results)<-c("Enrichment.table","RES","indicators")
+        return(GSEA_results)
     }else{
-        return(tablaEnriquecimiento)
+        return(enrichmentTable)
     }
 }
 
@@ -637,23 +637,23 @@ plot_CM<-function(CM.statMatrix,plot_title = NULL,specialTF = NULL,TF_colors = N
     if (is.null(plot_title)){plot_title<-"Transcription Factor Enrichment"}
     if (is.null(specialTF)){
         CM.statMatrix$highlight<-rep("Other",length(CM.statMatrix[,1]))
-        colores<-c("azure4")
-        names(colores)<-c("Other")
+        markerColors<-c("azure4")
+        names(markerColors)<-c("Other")
     }
     if (!is.null(specialTF) & is.null(TF_colors)){
         TF_colors<-c("red","blue","green","hotpink","cyan","greenyellow","gold",
                      "darkorchid","chocolate1","black","lightpink","seagreen")
         TF_colors<-TF_colors[1:length(unique(names(specialTF)))]
-        highlight_list<-highlight.TF(CM.statMatrix,2,specialTF,TF_colors)
+        highlight_list<-highlight_TF(CM.statMatrix,2,specialTF,TF_colors)
         CM.statMatrix$highlight<-highlight_list[[1]]
-        colores<-highlight_list[[2]]
+        markerColors<-highlight_list[[2]]
     }
     if(!is.null(specialTF)&!is.null(TF_colors)){
-        highlight_list<-highlight.TF(CM.statMatrix,2,specialTF,TF_colors)
+        highlight_list<-highlight_TF(CM.statMatrix,2,specialTF,TF_colors)
         CM.statMatrix$highlight<-highlight_list[[1]]
-        colores<-highlight_list[[2]]
+        markerColors<-highlight_list[[2]]
     }
-    if (exists("MetaData")==F){data("MetaData",package = "TFEA.ChIP",envir = environment())}
+    if (!exists("MetaData")){data("MetaData",package = "TFEA.ChIP",envir = environment())}
     MetaData<-MetaData[MetaData$Accession%in%CM.statMatrix$Accession,]
     MetaData<-dplyr::arrange(MetaData,Accession)
     CM.statMatrix<-dplyr::arrange(CM.statMatrix,Accession)
@@ -662,25 +662,25 @@ plot_CM<-function(CM.statMatrix,plot_title = NULL,specialTF = NULL,TF_colors = N
     rm(MetaData)
 
     if(length(CM.statMatrix[CM.statMatrix$OR==Inf,1])>0){
-        warn<-length(CM.statMatrix[CM.statMatrix$OR==Inf,1])
+        warn_number<-length(CM.statMatrix[CM.statMatrix$OR==Inf,1])
         CM.statMatrix[CM.statMatrix$OR==Inf,]$OR<-rep(max(CM.statMatrix[CM.statMatrix$OR!=Inf,]$OR),
                                                       length(CM.statMatrix[CM.statMatrix$OR==Inf,1]))
-        warning(warn," elements have an Odds Ratio of Inf. Maximum value for OR introduced instead.")
+        warning(warn_number," elements have an Odds Ratio of Inf. Maximum value for OR introduced instead.")
     }
     if(length(CM.statMatrix[CM.statMatrix$OR==-Inf,1])>0){
-        warn<-length(CM.statMatrix[CM.statMatrix$OR==-Inf,1])
+        warn_number<-length(CM.statMatrix[CM.statMatrix$OR==-Inf,1])
         CM.statMatrix[CM.statMatrix$OR==-Inf,]$OR<-rep(min(CM.statMatrix[CM.statMatrix$OR!=-Inf,]$OR),
                                                        length(CM.statMatrix[CM.statMatrix$OR==-Inf,1]))
-        warning(warn," elements have an Odds Ratio of -Inf. Minimum value for OR introduced instead.")
+        warning(warn_number," elements have an Odds Ratio of -Inf. Minimum value for OR introduced instead.")
     }
     if(length(CM.statMatrix[CM.statMatrix$adj.p.value==0,1])>0){
-        warn<-length(CM.statMatrix[CM.statMatrix$adj.p.value==0,1])
+        warn_number<-length(CM.statMatrix[CM.statMatrix$adj.p.value==0,1])
         CM.statMatrix[CM.statMatrix$p.value==0,]$log.adj.pVal<-rep(max(CM.statMatrix[CM.statMatrix$adj.p.value!=0,]$log.adj.pVal),
                                                                   length(CM.statMatrix[CM.statMatrix$adj.p.value==0,1]))
-        warning(warn," elements have a -log(p-Value) of Inf. Maximum value for -log(p-Val) introduced instead.")
+        warning(warn_number," elements have a -log(p-Value) of Inf. Maximum value for -log(p-Val) introduced instead.")
     }
 
-    if (length(colores)>1){
+    if (length(markerColors)>1){
         CM.statMatrix_highlighted<-CM.statMatrix[CM.statMatrix$highlight!="Other",]
         CM.statMatrix_other<-CM.statMatrix[CM.statMatrix$highlight=="Other",]
 
@@ -688,19 +688,19 @@ plot_CM<-function(CM.statMatrix,plot_title = NULL,specialTF = NULL,TF_colors = N
                            text=paste0(CM.statMatrix_other$Accession,": ",CM.statMatrix_other$TF,
                                        '<br>Treatment: ',CM.statMatrix_other$Treatment,
                                        '<br>Cell: ',CM.statMatrix_other$Cell),
-                           color = ~highlight, colors=colores)
+                           color = ~highlight, colors=markerColors)
         p<-plotly::add_markers(p,x=CM.statMatrix_highlighted$log.adj.pVal, y=CM.statMatrix_highlighted$OR,type="scatter", mode="markers",
                                text=paste0(CM.statMatrix_highlighted$Accession,": ",CM.statMatrix_highlighted$TF,
                                            '<br>Treatment: ',CM.statMatrix_highlighted$Treatment,
                                            '<br>Cell: ',CM.statMatrix_highlighted$Cell),
-                               color = CM.statMatrix_highlighted$highlight, colors=colores)%>%
+                               color = CM.statMatrix_highlighted$highlight, colors=markerColors)%>%
             plotly::layout(title=plot_title)
-    }else if (length(colores)==1){
+    }else if (length(markerColors)==1){
         p<-plotly::plot_ly(CM.statMatrix, x=~log.adj.pVal,y=~OR,type="scatter",mode="markers",
                            text=paste0(CM.statMatrix$Accession,": ",CM.statMatrix$TF,
                                        '<br>Treatment: ',CM.statMatrix$Treatment,
                                        '<br>Cell: ',CM.statMatrix$Cell),
-                           color = ~highlight, colors=colores)
+                           color = ~highlight, colors=markerColors)
     }
     p
     return(p)
@@ -710,7 +710,7 @@ plot_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_colors =
 
     #' @title Plots Enrichment Score from the output of GSEA.run.
     #' @description Function to plot the Enrichment Score of every member of the ChIPseq binding database.
-    #' @param GSEA_result Returned by GSEA.run
+    #' @param GSEA_result Returned by GSEA_run
     #' @param LFC Vector with log2(Fold Change) of every gene that has an Entrez ID. Arranged from higher to lower.
     #' @param plot_title (Optional) Title for the plot
     #' @param specialTF (Optional) Named vector of TF symbols -as written in the enrichment table- to be highlighted in the plot.
@@ -730,74 +730,74 @@ plot_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_colors =
     requireNamespace("plotly")
 
    if(is.list(GSEA_result)==T){
-        tabla.Enr<-GSEA_result$Enrichment
+        enrichmentTable<-GSEA_result$Enrichment
     }else if(is.data.frame(GSEA_result)==T){
-        tabla.Enr<-GSEA_result
+        enrichmentTable<-GSEA_result
     }
 
     if (is.null(plot_title)){plot_title<-"Transcription Factor Enrichment"}
 
     if (is.null(specialTF)){
-        highlight_list<-rep("Other",length(tabla.Enr[,1]))
-        tabla.Enr$highlight<-highlight_list
-        colores<-c("azure4")
-        names(colores)<-c("Other")
+        highlight_list<-rep("Other",length(enrichmentTable[,1]))
+        enrichmentTable$highlight<-highlight_list
+        markerColors<-c("azure4")
+        names(markerColors)<-c("Other")
     }
 
     if (!is.null(specialTF) & is.null(TF_colors)){
         TF_colors<-c("red","blue","green","hotpink","cyan","greenyellow","gold",
                      "darkorchid","chocolate1","black","lightpink","seagreen")
         TF_colors<-TF_colors[1:length(unique(names(specialTF)))]
-        highlight_list<-highlight.TF(tabla.Enr,2,specialTF,TF_colors)
-        tabla.Enr$highlight<-highlight_list[[1]]
-        colores<-highlight_list[[2]]
+        highlight_list<-highlight_TF(enrichmentTable,2,specialTF,TF_colors)
+        enrichmentTable$highlight<-highlight_list[[1]]
+        markerColors<-highlight_list[[2]]
     }
     if(!is.null(specialTF)&!is.null(TF_colors)){
-        highlight_list<-highlight.TF(tabla.Enr,2,specialTF,TF_colors)
-        tabla.Enr$highlight<-highlight_list[[1]]
-        colores<-highlight_list[[2]]
+        highlight_list<-highlight_TF(enrichmentTable,2,specialTF,TF_colors)
+        enrichmentTable$highlight<-highlight_list[[1]]
+        markerColors<-highlight_list[[2]]
     }
 
-    simbolo<-rep("pVal>0.05",times=length(tabla.Enr[,1]))
-    for (i in 1:length(tabla.Enr[,1])){
-        if(!is.na(tabla.Enr[i,4])){
-            if (tabla.Enr[i,4]<=0.05){simbolo[i]<-"pVal<0.05"}
+    simbolo<-rep("pVal>0.05",times=length(enrichmentTable[,1]))
+    for (i in 1:length(enrichmentTable[,1])){
+        if(!is.na(enrichmentTable[i,4])){
+            if (enrichmentTable[i,4]<=0.05){simbolo[i]<-"pVal<0.05"}
         }
     }
-    tabla.Enr$symbol<-simbolo
-    if (exists("MetaData")==F){data("MetaData",package = "TFEA.ChIP",envir = environment())}
-    MetaData<-MetaData[MetaData$Accession%in%tabla.Enr$Accession,]
+    enrichmentTable$symbol<-simbolo
+    if (!exists("MetaData")){data("MetaData",package = "TFEA.ChIP",envir = environment())}
+    MetaData<-MetaData[MetaData$Accession%in%enrichmentTable$Accession,]
     MetaData<-dplyr::arrange(MetaData,Accession)
-    tabla.Enr<-dplyr::arrange(tabla.Enr,Accession)
-    tabla.Enr$Treatment<-MetaData$Treatment
+    enrichmentTable<-dplyr::arrange(enrichmentTable,Accession)
+    enrichmentTable$Treatment<-MetaData$Treatment
     rm(MetaData)
 
-    if(length(colores>1)){
-        tabla.Enr_highlighted<-tabla.Enr[tabla.Enr$highlight!="Other",]
-        tabla.Enr_other<-rbind(tabla.Enr[tabla.Enr$highlight=="Other",],tabla.Enr_highlighted)
+    if(length(markerColors>1)){
+        enrichmentTable_highlighted<-enrichmentTable[enrichmentTable$highlight!="Other",]
+        enrichmentTable_other<-enrichmentTable[enrichmentTable$highlight=="Other",]
 
-        p<-plotly::plot_ly(tabla.Enr_other, x=tabla.Enr_other$Arg.ES,y=tabla.Enr_other$ES, type="scatter", mode="markers",
-                           text=paste0(tabla.Enr_other$Accession,": ",tabla.Enr_other$TF,
-                                       '<br>Pval: ',round(tabla.Enr_other$pval.ES,3),
-                                       '<br>Treatment: ',tabla.Enr_other$Treatment),
-                           color=tabla.Enr_other$highlight, colors=colores, symbol=tabla.Enr_other$symbol,
+        p<-plotly::plot_ly(enrichmentTable_other, x=enrichmentTable_other$Arg.ES,y=enrichmentTable_other$ES, type="scatter", mode="markers",
+                           text=paste0(enrichmentTable_other$Accession,": ",enrichmentTable_other$TF,
+                                       '<br>Pval: ',round(enrichmentTable_other$pval.ES,3),
+                                       '<br>Treatment: ',enrichmentTable_other$Treatment),
+                           color=enrichmentTable_other$highlight, colors=markerColors, symbol=enrichmentTable_other$symbol,
                            symbols=c("x","circle"))
 
-        p<-plotly::add_markers(p,x=tabla.Enr_highlighted$Arg.ES, y=tabla.Enr_highlighted$ES,type="scatter", mode="markers",
-                               text=paste0(tabla.Enr_highlighted$Accession,": ",tabla.Enr_highlighted$TF,
-                                           '<br>Pval: ',round(tabla.Enr_highlighted$pval.ES,3),
-                                           '<br>Treatment: ',tabla.Enr_highlighted$Treatment),
-                               color=tabla.Enr_highlighted$highlight, colors=colores,symbol=tabla.Enr_highlighted$symbol,
+        p<-plotly::add_markers(p,x=enrichmentTable_highlighted$Arg.ES, y=enrichmentTable_highlighted$ES,type="scatter", mode="markers",
+                               text=paste0(enrichmentTable_highlighted$Accession,": ",enrichmentTable_highlighted$TF,
+                                           '<br>Pval: ',round(enrichmentTable_highlighted$pval.ES,3),
+                                           '<br>Treatment: ',enrichmentTable_highlighted$Treatment),
+                               color=enrichmentTable_highlighted$highlight, colors=markerColors,symbol=enrichmentTable_highlighted$symbol,
                                symbols=c("x","circle"),showlegend=F)%>%
             plotly::layout(title=plot_title,
                            xaxis = list(title = "Argument"),
                            yaxis = list (title = "ES"))
-    }else if (length(colores)==1){
-        p<-plotly::plot_ly(tabla.Enr, x=tabla.Enr$Arg.ES,y=tabla.Enr$ES, type="scatter", mode="markers",
-                           text=paste0(tabla.Enr$Accession,": ",tabla.Enr$TF,
-                                       '<br>Pval: ',round(tabla.Enr$pval.ES,3),
-                                       '<br>Treatment: ',tabla.Enr$Treatment),
-                           color=tabla.Enr$highlight, colors=colores, symbol=tabla.Enr$symbol,
+    }else if (length(markerColors)==1){
+        p<-plotly::plot_ly(enrichmentTable, x=enrichmentTable$Arg.ES,y=enrichmentTable$ES, type="scatter", mode="markers",
+                           text=paste0(enrichmentTable$Accession,": ",enrichmentTable$TF,
+                                       '<br>Pval: ',round(enrichmentTable$pval.ES,3),
+                                       '<br>Treatment: ',enrichmentTable$Treatment),
+                           color=enrichmentTable$highlight, colors=markerColors, symbol=enrichmentTable$symbol,
                            symbols=c("x","circle"))
     }
 
@@ -810,9 +810,9 @@ plot_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_colors =
 
 plot_all_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.styles = NULL){
 
-    #' @title Plots all the RES stored in a GSEA.run output.
-    #' @description Function to plot all the RES stored in a GSEA.run output.
-    #' @param GSEA_result Returned by GSEA.run
+    #' @title Plots all the RES stored in a GSEA_run output.
+    #' @description Function to plot all the RES stored in a GSEA_run output.
+    #' @param GSEA_result Returned by GSEA_run
     #' @param LFC Vector with log2(Fold Change) of every gene that has an Entrez ID. Arranged from higher to lower.
     #' @param plot_title (Optional) Title for the plot.
     #' @param line.colors (Optional) Vector of colors for each line.
@@ -845,7 +845,7 @@ plot_all_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line
     chip_index<-get_chip_index("g")
     tf<-chip_index[chip_index[,1]%in%accessions,]
     rm(chip_index)
-    if (exists("MetaData")==F){data("MetaData",package = "TFEA.ChIP",envir = environment())}
+    if (!exists("MetaData")){data("MetaData",package = "TFEA.ChIP",envir = environment())}
     MetaData<-MetaData[MetaData$Accession%in%accessions,]
     Accessions<-vector()
     Cell<-vector()
@@ -911,8 +911,8 @@ plot_all_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line
 
 plot_some_RES<-function(GSEA.runningSum,LFC,plot_title = NULL,line.colors = NULL,line.styles = NULL){
 
-    #' @title Plots selected RES from the output of the function GSEA.run.
-    #' @description Function to plot selected RES from the output of the function GSEA.run.
+    #' @title Plots selected RES from the output of the function GSEA_run.
+    #' @description Function to plot selected RES from the output of the function GSEA_run.
     #' @param GSEA.runningSum List of Running Enrichment Score vectors.
     #' @param plot_title Title for the plot.
     #' @param LFC Vector with log2(Fold Change) of every gene that has an Entrez ID. Arranged from higher to lower
@@ -945,7 +945,7 @@ plot_some_RES<-function(GSEA.runningSum,LFC,plot_title = NULL,line.colors = NULL
     chip_index<-get_chip_index("g")
     tf<-chip_index[chip_index[,1]%in%accessions,]
     rm(chip_index)
-    if (exists("MetaData")==F){data("MetaData",package = "TFEA.ChIP",envir = environment())}
+    if (!exists("MetaData")){data("MetaData",package = "TFEA.ChIP",envir = environment())}
     MetaData<-MetaData[MetaData$Accession%in%accessions,]
 
     Accessions<-vector()
@@ -1010,7 +1010,7 @@ plot_some_RES<-function(GSEA.runningSum,LFC,plot_title = NULL,line.colors = NULL
     return(graf)
 }
 
-highlight.TF<-function(table,column,specialTF,colores){
+highlight_TF<-function(table,column,specialTF,markerColors){
 
     #' @title Highlight certain transcription factors in a plotly graph.
     #' @description Function to highlight certain transcription factors using different colors in a plotly graph.
@@ -1020,12 +1020,12 @@ highlight.TF<-function(table,column,specialTF,colores){
     #' Example:
     #'           specialTF<-c("HIF1A","HIF1A-hx","EPAS1","EPAS1-hx","ARNT","ARNT-hx","SIN3A","SAP30","MXI1")
     #'           names(specialTF)<-c("HIF","HIF","HIF","HIF","HIF","HIF","SIN3A","SAP30","MXI1")
-    #' @param colores Vector specifying the shade for every color group.
+    #' @param markerColors Vector specifying the shade for every color group.
     #' @return List of two objects:
     #' A vector to attach to the enrichment matrix/df pointing out the color group of every row.
     #' A named vector connecting each color group to the chosen color.
     # examples
-    # highlight.TF(CM.statMatrix_UP,4,specialTF,colors)
+    # highlight_TF(CM.statMatrix_UP,4,specialTF,colors)
 
 
     highlight<-rep("Other",length(table[,1]))
@@ -1038,9 +1038,9 @@ highlight.TF<-function(table,column,specialTF,colores){
             }
         }
     }
-    colores<-c("azure4",colores)
-    names(colores)<-c("Other",unique(names(specialTF)))
-    return(list(highlight,colores))
+    markerColors<-c("azure4",markerColors)
+    names(markerColors)<-c("Other",unique(names(specialTF)))
+    return(list(highlight,markerColors))
 }
 
 get_LFC_bar<-function(LFC){
