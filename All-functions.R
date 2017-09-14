@@ -788,7 +788,7 @@ plot_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_colors =
                                            '<br>Pval: ',round(enrichmentTable_highlighted$pval.ES,3),
                                            '<br>Treatment: ',enrichmentTable_highlighted$Treatment),
                                color=enrichmentTable_highlighted$highlight, colors=markerColors,symbol=enrichmentTable_highlighted$symbol,
-                               symbols=c("x","circle"),showlegend=F)%>%
+                               symbols=c("x","circle"))%>%
             plotly::layout(title=plot_title,
                            xaxis = list(title = "Argument"),
                            yaxis = list (title = "ES"))
