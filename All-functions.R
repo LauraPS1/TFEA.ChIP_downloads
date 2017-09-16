@@ -706,7 +706,7 @@ plot_CM<-function(CM.statMatrix,plot_title = NULL,specialTF = NULL,TF_colors = N
     return(p)
 }
 
-plot_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_colors = NULL){
+plot_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_colors = NULL,Accession=NULL,TF=NULL){
 
     #' @title Plots Enrichment Score from the output of GSEA.run.
     #' @description Function to plot the Enrichment Score of every member of the ChIPseq binding database.
@@ -716,6 +716,8 @@ plot_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_colors =
     #' @param specialTF (Optional) Named vector of TF symbols -as written in the enrichment table- to be highlighted in the plot.
     #' The name of each element specifies its color group, i.e.: naming elements HIF1A and HIF1B as "HIF" to represent them with the same color.
     #' @param TF_colors (Optional) Colors to highlight TFs chosen in specialTF.
+    #' @param Accession (Optional) restricts plot to the indicated list dataset IDs.
+    #' @param TF (Optional) restricts plot to the indicated list transcription factor names.
     #' @return Plotly object with a scatter plot -Enrichment scores- and a heatmap -log2(fold change) bar-.
     #' @export plot_ES
     #' @examples
@@ -733,6 +735,13 @@ plot_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_colors =
         enrichmentTable<-GSEA_result$Enrichment
     }else if(is.data.frame(GSEA_result)==T){
         enrichmentTable<-GSEA_result
+    }
+    
+    if (!is.null(Accession) | !is.null(TF)){
+      if(is.null(Accession)){Accession<-enrichmentTable$Accession}
+      if(is.null(TF)){TF<-enrichmentTable$TF}
+      SS<-((enrichmentTable$Accession %in% Accession) & (enrichmentTable$TF %in% TF))
+      enrichmentTable<-enrichmentTable[which(SS),]
     }
 
     if (is.null(plot_title)){plot_title<-"Transcription Factor Enrichment"}
@@ -808,7 +817,7 @@ plot_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_colors =
     return(graf)
 }
 
-plot_all_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.styles = NULL,Accession=NULL,TF=NULL){
+plot_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.styles = NULL,Accession=NULL,TF=NULL){
 
     #' @title Plots all the RES stored in a GSEA_run output.
     #' @description Function to plot all the RES stored in a GSEA_run output.
@@ -817,8 +826,10 @@ plot_all_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line
     #' @param plot_title (Optional) Title for the plot.
     #' @param line.colors (Optional) Vector of colors for each line.
     #' @param line.styles (Optional) Vector of line styles for each line ("solid"/"dash"/"longdash").
+    #' @param Accession (Optional) restricts plot to the indicated list dataset IDs.
+    #' @param TF (Optional) restricts plot to the indicated list transcription factor names.
     #' @return Plotly object with a line plot -running sums- and a heatmap -log2(fold change) bar-.
-    #' @export plot_all_RES
+    #' @export plot_RES
     #' @examples
     #' plot_all_RES(GSEA_result,LFC,"Transcription Factor Enrichment",colors.RES,lines.RES)
     #' plot_all_RES(GSEA_result=GSEA_result,LFC=LFC)
@@ -918,7 +929,7 @@ plot_all_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line
     return(graf)
 }
 
-plot_some_RES<-function(GSEA.runningSum,LFC,plot_title = NULL,line.colors = NULL,line.styles = NULL){
+plot_RES<-function(GSEA.runningSum,LFC,plot_title = NULL,line.colors = NULL,line.styles = NULL){
 
     #' @title Plots selected RES from the output of the function GSEA_run.
     #' @description Function to plot selected RES from the output of the function GSEA_run.
@@ -928,7 +939,7 @@ plot_some_RES<-function(GSEA.runningSum,LFC,plot_title = NULL,line.colors = NULL
     #' @param line.colors (Optional) Vector of colors for each line.
     #' @param line.styles (Optional) Vector of line styles for each line (solid/dash/longdash).
     #' @return Plotly object with a line plot -running sums- and a heatmap -log2(fold change) bar-.
-    #' @export plot_some_RES
+    #' @export plot_RES
     #' @examples
     #' plot_some_RES(EPAS1.runningSums,LFC,"Transcription Factor Enrichment",colors,lines)
     #' plot_some_RES(GSEA.runningSum=EPAS1.runningSums,LFC=LFC)
