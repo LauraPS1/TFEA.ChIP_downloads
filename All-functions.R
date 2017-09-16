@@ -808,7 +808,7 @@ plot_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_colors =
     return(graf)
 }
 
-plot_all_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.styles = NULL){
+plot_all_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.styles = NULL,Accession=NULL,TF=NULL){
 
     #' @title Plots all the RES stored in a GSEA_run output.
     #' @description Function to plot all the RES stored in a GSEA_run output.
@@ -831,6 +831,15 @@ plot_all_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line
     requireNamespace("dplyr")
     requireNamespace("plotly")
 
+    if (!is.null(Accession) | !is.null(TF)){
+      if(is.null(Accession)){Accession<-GSEA_result$Enrichment.table$Accession}
+      if(is.null(TF)){TF<-GSEA_result$Enrichment.table$TF}
+      SS<-((GSEA_result$Enrichment.table$Accession %in% Accession) & (GSEA_result$Enrichment.table$TF %in% TF))
+      GSEA_result$Enrichment.table<-GSEA_result$Enrichment.table[which(SS),]
+      GSEA_result$RES<-GSEA_result$RES[which(SS)]
+      GSEA_result$indicators<-GSEA_result$indicators[which(SS)]
+    }
+
     if(is.null(line.colors)){
         line.colors<-c("red","blue","green","hotpink","cyan","greenyellow","gold",
                        "darkorchid","chocolate1","black","lightpink","seagreen")
@@ -838,7 +847,7 @@ plot_all_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line
     }
     if(is.null(line.styles)){line.styles<-rep("solid",length(names(GSEA_result$RES)))}
     if (is.null(plot_title)){plot_title<-"Transcription Factor Enrichment"}
-
+    
     accessions<-names(GSEA_result$RES)
     GSEA.runningSum<-GSEA_result$RES
 
