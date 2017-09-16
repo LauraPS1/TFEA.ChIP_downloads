@@ -115,7 +115,7 @@ hypoxia.sorted<-hypoxia.sorted[!is.na(hypoxia.sorted$ENTREZ.ID),] #removes entri
 ```
 
 2. Select the datasets to analyze
-By default, the analysis will include all the ChIP-Seq experiments available in the database. However, this analysis might take several minutes to run. To restrict the analysis to a subset of the database we can generate an index variable and pass it to the function `GSEA.run`. This will limit the analysis to the ChIP-Seq experiments of the user's choosing. This index variable can be generated using the function *get_chip_index*, that allows to choose between the whole database or Encode-only ChIP-Seq experiments, and also to select a specific subset of transcription factors.
+By default, the analysis will include all the ChIP-Seq experiments available in the database. However, this analysis might take several minutes to run. To restrict the analysis to a subset of the database we can generate an index variable and pass it to the function `GSEA.run`. This will limit the analysis to the ChIP-Seq experiments of the user's choosing. This index variable can be generated using the function `get_chip_index`, that allows to choose between the whole database or Encode-only ChIP-Seq experiments, and also to select a specific subset of transcription factors.
 
 ```{r eval=TRUE, echo=T}
 chip_index<-get_chip_index(TFfilter = c("HIF1A","EPAS1","ARNT")) #restrict the analysis to datasets assaying these factors
