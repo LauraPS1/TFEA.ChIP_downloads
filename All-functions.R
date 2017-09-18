@@ -885,7 +885,7 @@ plot_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.sty
     tabla<-data.frame(Accession,Cell,Treatment,TF,stringsAsFactors = F)
     tabla$RES<-RES
 
-    rm(Accessions,Cell,Treatment,TF,RES)
+    rm(Cell,Treatment,TF,RES)
 
     if(length(tabla[,1])>1){
         for(i in 1:length(Accession)){
