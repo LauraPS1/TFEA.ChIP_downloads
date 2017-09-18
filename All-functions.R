@@ -283,8 +283,10 @@ GeneID2entrez<-function(gene.IDs,return.Matrix = F){
 
     if(return.Matrix==T){
         return(data.frame(GENE.ID=gene.IDs,ENTREZ.ID=GeneNames[tmp,"ENTREZID"]))
+        if (length(tmp[is.na(tmp)])>0){cat("Couldn't find Entrez IDs for ",length(tmp[is.na(tmp)])," genes (NAs returned instead).\n")}
     }else{
         return(GeneNames[tmp[!is.na(tmp)],"ENTREZID"])
+        if (length(tmp[is.na(tmp)])>0){cat("Couldn't find Entrez IDs for ",length(tmp[is.na(tmp)]),"genes.\n")}
     }
 }
 
@@ -817,12 +819,15 @@ plot_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_colors =
                            color=enrichmentTable$highlight, colors=markerColors, symbol=enrichmentTable$symbol,
                            symbols=c("x","circle"))
     }
-    p
-    return(p)
+    LFC.bar<-get_LFC_bar(LFC)
+
+    graf<-plotly::subplot(p,LFC.bar,shareX = TRUE,nrows = 2,heights = c(0.95, 0.05),titleY = TRUE)
+    graf
+    return(graf)
 }
 
 plot_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.styles = NULL,Accession=NULL,TF=NULL){
-    
+
     #' @title Plots all the RES stored in a GSEA_run output.
     #' @description Function to plot all the RES stored in a GSEA_run output.
     #' @param GSEA_result Returned by GSEA_run
@@ -837,7 +842,7 @@ plot_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.sty
     #' @examples
     #' plot_all_RES(GSEA_result,LFC,"Transcription Factor Enrichment",colors.RES,lines.RES)
     #' plot_all_RES(GSEA_result=GSEA_result,LFC=LFC)
-    
+
     if(!requireNamespace("plotly", quietly = TRUE)){
         stop("plotly package needed for this function to work. Please install it.",
              call. = FALSE)
@@ -845,18 +850,18 @@ plot_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.sty
     requireNamespace("utils")
     requireNamespace("dplyr")
     requireNamespace("plotly")
-    
+
     if (!is.null(Accession) | !is.null(TF)){
         if(is.null(Accession)){Accession<-GSEA_result$Enrichment.table$Accession}
         if(is.null(TF)){TF<-GSEA_result$Enrichment.table$TF}
         GSEA_result$Enrichment.table<-GSEA_result$Enrichment.table[GSEA_result$Enrichment.table$Accession %in% Accession &
-                                                                   GSEA_result$Enrichment.table$TF %in% TF,]
+                                                                       GSEA_result$Enrichment.table$TF %in% TF,]
         GSEA_result$RES<-GSEA_result$RES[names(GSEA_result$RES) %in% Accession]
         GSEA_result$indicators<-GSEA_result$indicators[names(GSEA_result$indicators %in% Accession)]
     }else{
         Accession<-GSEA_result$Enrichment.table$Accession
     }
-    
+
     if(is.null(line.colors)){
         line.colors<-c("red","blue","green","hotpink","cyan","greenyellow","gold",
                        "darkorchid","chocolate1","black","lightpink","seagreen")
@@ -864,9 +869,9 @@ plot_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.sty
     }
     if(is.null(line.styles)){line.styles<-rep("solid",length(names(GSEA_result$RES)))}
     if (is.null(plot_title)){plot_title<-"Transcription Factor Enrichment"}
-    
+
     GSEA.runningSum<-GSEA_result$RES
-    
+
     chip_index<-get_chip_index("g")
     tf<-chip_index[chip_index[,1]%in%Accession,]
     rm(chip_index)
@@ -886,9 +891,9 @@ plot_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.sty
     }
     tabla<-data.frame(Accession,Cell,Treatment,TF,stringsAsFactors = F)
     tabla$RES<-RES
-    
+
     rm(Cell,Treatment,TF,RES)
-    
+
     if(length(tabla[,1])>1){
         for(i in 1:length(Accession)){
             if (i==1){
@@ -926,8 +931,11 @@ plot_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.sty
                            xaxis = list(title = "Argument"),
                            yaxis = list (title = "ES"))
     }
-    grafica
-    return(grafica)
+    LFC.bar<-get_LFC_bar(LFC)
+
+    graf<-plotly::subplot(grafica,LFC.bar,shareX = TRUE,nrows = 2,heights = c(0.95, 0.05),titleY = TRUE)
+    graf
+    return(graf)
 }
 
 highlight_TF<-function(table,column,specialTF,markerColors){
