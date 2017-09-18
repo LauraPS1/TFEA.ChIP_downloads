@@ -783,6 +783,7 @@ plot_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_colors =
     MetaData<-dplyr::arrange(MetaData,Accession)
     enrichmentTable<-dplyr::arrange(enrichmentTable,Accession)
     enrichmentTable$Treatment<-MetaData$Treatment
+    enrichmentTable$Cell<-MetaData$Cell
     rm(MetaData)
 
     if(length(markerColors>1)){
@@ -792,14 +793,16 @@ plot_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_colors =
         p<-plotly::plot_ly(enrichmentTable_other, x=enrichmentTable_other$Arg.ES,y=enrichmentTable_other$ES, type="scatter", mode="markers",
                            text=paste0(enrichmentTable_other$Accession,": ",enrichmentTable_other$TF,
                                        '<br>Pval: ',round(enrichmentTable_other$pval.ES,3),
-                                       '<br>Treatment: ',enrichmentTable_other$Treatment),
+                                       '<br>Treatment: ',enrichmentTable_other$Treatment,
+                                       '<br>Cell: ',enrichmentTable_other$Cell),
                            color=enrichmentTable_other$highlight, colors=markerColors, symbol=enrichmentTable_other$symbol,
                            symbols=c("x","circle"))
 
         p<-plotly::add_markers(p,x=enrichmentTable_highlighted$Arg.ES, y=enrichmentTable_highlighted$ES,type="scatter", mode="markers",
                                text=paste0(enrichmentTable_highlighted$Accession,": ",enrichmentTable_highlighted$TF,
                                            '<br>Pval: ',round(enrichmentTable_highlighted$pval.ES,3),
-                                           '<br>Treatment: ',enrichmentTable_highlighted$Treatment),
+                                           '<br>Treatment: ',enrichmentTable_highlighted$Treatment,
+                                           '<br>Cell: ',enrichmentTable_highlighted$Cell),
                                color=enrichmentTable_highlighted$highlight, colors=markerColors,symbol=enrichmentTable_highlighted$symbol,
                                symbols=c("x","circle"))%>%
             plotly::layout(title=plot_title,
@@ -809,7 +812,8 @@ plot_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_colors =
         p<-plotly::plot_ly(enrichmentTable, x=enrichmentTable$Arg.ES,y=enrichmentTable$ES, type="scatter", mode="markers",
                            text=paste0(enrichmentTable$Accession,": ",enrichmentTable$TF,
                                        '<br>Pval: ',round(enrichmentTable$pval.ES,3),
-                                       '<br>Treatment: ',enrichmentTable$Treatment),
+                                       '<br>Treatment: ',enrichmentTable$Treatment,
+                                       '<br>Cell: ',enrichmentTable$Cell),
                            color=enrichmentTable$highlight, colors=markerColors, symbol=enrichmentTable$symbol,
                            symbols=c("x","circle"))
     }
@@ -847,6 +851,8 @@ plot_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.sty
         GSEA_result$Enrichment.table<-GSEA_result$Enrichment.table[which(SS),]
         GSEA_result$RES<-GSEA_result$RES[which(SS)]
         GSEA_result$indicators<-GSEA_result$indicators[which(SS)]
+    }else{
+        Accession<-GSEA_result$Enrichment.table$Accession
     }
 
     if(is.null(line.colors)){
@@ -857,48 +863,47 @@ plot_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.sty
     if(is.null(line.styles)){line.styles<-rep("solid",length(names(GSEA_result$RES)))}
     if (is.null(plot_title)){plot_title<-"Transcription Factor Enrichment"}
 
-    accessions<-names(GSEA_result$RES)
     GSEA.runningSum<-GSEA_result$RES
 
     chip_index<-get_chip_index("g")
-    tf<-chip_index[chip_index[,1]%in%accessions,]
+    tf<-chip_index[chip_index[,1]%in%Accession,]
     rm(chip_index)
     if (!exists("MetaData")){data("MetaData",package = "TFEA.ChIP",envir = environment())}
-    MetaData<-MetaData[MetaData$Accession%in%accessions,]
-    Accessions<-vector()
+    MetaData<-MetaData[MetaData$Accession%in%Accession,]
     Cell<-vector()
-    Treatment<-rep("no treatment",length(accessions))
+    Treatment<-rep("no treatment",length(Accession))
     TF<-vector()
     RES<-list()
-    for(i in 1:length(accessions)){
-        Accessions[i]<-accessions[i]
-        Cell[i]<-MetaData[MetaData$Accession==accessions[i],3]
-        if(MetaData[MetaData$Accession==accessions[i],5]!="none"){Treatment[i]<-MetaData[MetaData$Accession==accessions[i],5]}
-        TF[i]<-tf[tf[,1]==accessions[i],2]
-        RES<-c(RES,GSEA.runningSum[names(GSEA.runningSum)%in%accessions[i]][1])
+    for(i in 1:length(Accession)){
+        Cell[i]<-MetaData[MetaData$Accession==Accession[i],]$Cell
+        if(MetaData[MetaData$Accession==Accession[i],]$Treatment!="none"){
+            Treatment[i]<-MetaData[MetaData$Accession==Accession[i],5]
+        }
+        TF[i]<-tf[tf[,1]==Accession[i],2]
+        RES<-c(RES,GSEA.runningSum[names(GSEA.runningSum)%in%Accession[i]][1])
     }
-    tabla<-data.frame(Accessions,Cell,Treatment,TF,stringsAsFactors = F)
+    tabla<-data.frame(Accession,Cell,Treatment,TF,stringsAsFactors = F)
     tabla$RES<-RES
 
     rm(Accessions,Cell,Treatment,TF,RES)
 
     if(length(tabla[,1])>1){
-        for(i in 1:length(accessions)){
+        for(i in 1:length(Accession)){
             if (i==1){
                 grafica<-plotly::plot_ly(tabla,x=c(1:length(tabla$RES[[1]])),
-                                         y=tabla$RES[[accessions[1]]],
+                                         y=tabla$RES[[Accession[1]]],
                                          type="scatter", mode="lines", line=list(color=line.colors[1],dash=line.styles[1]),
                                          name=paste0(tabla$Accessions[1]," - ",tabla$TF[1]),
                                          text=paste0(tabla$Accessions[1]," - ",tabla$TF[1],'<br>Cell: ',tabla$Cell[1],
                                                      ' <br>Treatment: ',tabla$Treatment[1]))
-            }else if (i>1 & i<length(accessions)){
-                grafica<-plotly::add_trace(p = grafica,y=tabla$RES[[accessions[i]]],
+            }else if (i>1 & i<length(Accession)){
+                grafica<-plotly::add_trace(p = grafica,y=tabla$RES[[Accession[i]]],
                                            type="scatter", mode="lines",line=list(color=line.colors[i],dash=line.styles[i]),
                                            name=paste0(tabla$Accessions[i]," - ",tabla$TF[i]),
                                            text=paste0(tabla$Accessions[i]," - ",tabla$TF[i],'<br>Cell: ',tabla$Cell[i],
                                                        ' <br>Treatment: ',tabla$Treatment[i]))
-            }else if (i==length(accessions)){
-                grafica<-plotly::add_trace(p = grafica,y=tabla$RES[[accessions[i]]],
+            }else if (i==length(Accession)){
+                grafica<-plotly::add_trace(p = grafica,y=tabla$RES[[Accession[i]]],
                                            type="scatter", mode="lines",line=list(color=line.colors[i],dash=line.styles[i]),
                                            name=paste0(tabla$Accessions[i]," - ",tabla$TF[i]),
                                            text=paste0(tabla$Accessions[i]," - ",tabla$TF[i],'<br>Cell: ',tabla$Cell[i],
@@ -910,7 +915,7 @@ plot_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.sty
         }
     }else{
         grafica<-plotly::plot_ly(tabla,x=c(1:length(tabla$RES[[1]])),
-                                 y=tabla$RES[[accessions[1]]],
+                                 y=tabla$RES[[Accession[1]]],
                                  type="scatter", mode="lines", line=list(color=line.colors[1],dash=line.styles[1]),
                                  name=paste0(tabla$Accessions[1]," - ",tabla$TF[1]),
                                  text=paste0(tabla$Accessions[i]," - ",tabla$TF[i],'<br>Cell: ',tabla$Cell[i],
@@ -920,7 +925,6 @@ plot_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.sty
                            yaxis = list (title = "ES"))
     }
 }
-
 
 highlight_TF<-function(table,column,specialTF,markerColors){
 
