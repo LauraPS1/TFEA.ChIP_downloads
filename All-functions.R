@@ -420,7 +420,7 @@ getCMstats<-function(contMatrix_list,chip_index=get_chip_index()){
         }
     }
     statMat$adj.p.value<-stats::p.adjust(statMat$p.value,"fdr")
-    statMat$log.adj.pVal<-(-1*(log(statMat$adj.p.value)))
+    statMat$log.adj.pVal<-(-1*(log10(statMat$adj.p.value)))
 
     return(statMat)
 }
