@@ -234,6 +234,8 @@ if("ggplot2" %in% rownames(installed.packages()) == TRUE){
         geom_hline(yintercept = 0)
 }
 ```
+
+
 # Building a TF-gene binding database
 
 If the user wants to generate their own database, the functions *txt2gr* and *GR2tfbs_db* automate most of the process. The starting data required is:
