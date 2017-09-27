@@ -257,9 +257,10 @@ File.list<-dir(folder)
 format<-"macs"
 ```
 
-2. Set a *for* loop to convert all your files to GenomicRanges objects using *txt2GR* and save them in the folder of your choosing.
+2. Set a *for* loop to convert all your files to GenomicRanges objects using *txt2GR*.
 
 ```{r eval=FALSE,echo=TRUE}
+gr.list<-list()
 for (i in 1:length(File.list)){
     
     tmp<-read.table(file=paste0(folder,"/",File.list[i]), ...)
@@ -271,7 +272,8 @@ for (i in 1:length(File.list)){
         }
     }
     
-    txt2GR(tmp, format, GR.folder, file.metadata)
+    ChIP.dataset.gr<-txt2GR(tmp, format, GR.folder, file.metadata)
+    gr.list<-c(gr.list,list(ChIP.dataset.gr))
 }
 ```
 
@@ -289,7 +291,7 @@ dnaseClusters<-makeGRangesFromDataFrame(dnaseClusters,
                          end.field="chromEnd")
 ```
 
-4. Select the Dnase hypersensitive sites that are 1Kb or closer to a gene and assign a gene ID yo every Dnase HS that remains.
+  iii.2) Select the Dnase hypersensitive sites that are 1Kb or closer to a gene and assign a gene ID yo every Dnase HS that remains.
 
 ```{r eval=FALSE,echo=TRUE}
 txdb<-TxDb.Hsapiens.UCSC.hg19.knownGene
@@ -302,21 +304,19 @@ near.gene<-near.gene[near.gene@elementMetadata@listData$distance<1000]
 dnase.sites.list<-queryHits(near.gene)
 near.gene<-subjectHits(near.gene)
 
-DnaseHSites<-GRanges()
+DHS.database<-GRanges()
 
 for (i in 1:length(dnase.sites.list)){
     tmp<-dnaseClusters[dnase.sites.list[i]]
     mcols(tmp)$gene_id<-Genes[as.integer(near.gene[i])]$gene_id
-    DnaseHSites<-c(DnaseHSites,tmp)
+    DHS.database<-c(DHS.database,tmp)
 }
 ```
 
 5. Load the Dnase Hypersensitive Sites database and generate your TFBS database with *GR2tfbs_db*
 
 ```{r eval=FALSE,echo=TRUE}
-load("~/path.to.DnaseHS")
-ListGR<-dir("~/path.to.GR.files")
-TF.gene.binding.db<-GR2tfbs_db(DnaseHS,ListGR,GRfolder="~/path.to.GR.files")
+TF.gene.binding.db<-GR2tfbs_db(DHS.database,gr.list) # gr.list is a list of outputs from the funcion "txt2GR"
 ```
 
 6. Generate a binary matrix to use with the rest of TFEA.ChIP using *makeTFBSmatrix*. This matrix and the metadata table are the files you will need to run TFEA.ChIP with your own data.
