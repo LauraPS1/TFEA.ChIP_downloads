@@ -93,17 +93,18 @@ plot_CM(pval_mat_UP) #plot p-values against ORs
 if("ggplot2" %in% rownames(installed.packages()) == TRUE){ 
     # If ggplot2 is installed, the vignette will include static plots
     # as an example of those generated with plot_CM, plot_ES, and plot_RES
-    library(ggplot2)
+    requireNamespace("ggplot2")
+    
     pval_mat_UP$highlight<-rep("Other",length(pval_mat_UP$Accession))
     
-    ggplot(pval_mat_UP,aes(x=log.adj.pVal, y=OR))+
-        geom_point(aes(col=highlight))+
-        labs(title="Transcription factor enrichment", subtitle="HUVEC cells under hypoxia",
+    ggplot2::ggplot(pval_mat_UP,ggplot2::aes(x=log.adj.pVal, y=OR))+
+        ggplot2::geom_point(ggplot2::aes(col=highlight))+
+        ggplot2::labs(title="Transcription factor enrichment", subtitle="HUVEC cells under hypoxia",
              y="Odds Ratio", x="log10(p-value)",
              caption="To limit this file's size, only static versions of the plots are shown in this vignette")+
-        theme_bw()+
-        scale_color_manual(values = c("Other"="lightsteelblue3"))+
-        theme(legend.position="none")
+        ggplot2::theme_bw()+
+        ggplot2::scale_color_manual(values = c("Other"="lightsteelblue3"))+
+        ggplot2::theme(legend.position="none")
 }
 ```
 In fact, the exploration of this graph shows a strong enrichment for several HIF datasets, as expected.
@@ -124,13 +125,13 @@ if("ggplot2" %in% rownames(installed.packages()) == TRUE){
     pval_mat_UP$highlight<-rep("Other",length(pval_mat_UP$Accession))
     pval_mat_UP[pval_mat_UP$TF=="HIF1A"|pval_mat_UP$TF=="EPAS1"|pval_mat_UP$TF=="ARNT",]$highlight<-"HIF"
     pval_mat_UP<-arrange(pval_mat_UP,desc(highlight))
-    ggplot(pval_mat_UP,aes(x=log.adj.pVal, y=OR))+
-        geom_point(aes(col=highlight))+
-        labs(title="Transcription factor enrichment", subtitle="HUVEC cells under hypoxia",
+    ggplot2::ggplot(pval_mat_UP,ggplot2::aes(x=log.adj.pVal, y=OR))+
+        ggplot2::geom_point(ggplot2::aes(col=highlight))+
+        ggplot2::labs(title="Transcription factor enrichment", subtitle="HUVEC cells under hypoxia",
              y="Odds Ratio", x="log10(p-value)",
              caption="To limit this file's size, only static versions of the plots are shown in this vignette")+
-        theme_bw()+
-        scale_color_manual(name="TF",
+        ggplot2::theme_bw()+
+        ggplot2::scale_color_manual(name="TF",
             values = c("Other"="lightsteelblue3",
                                       "HIF"="red"))
 }
@@ -192,17 +193,17 @@ if("ggplot2" %in% rownames(installed.packages()) == TRUE){
     table[table$TF=="ARNT",]$highlight<-"ARNT"
     table<-arrange(table,desc(highlight))
 
-    ggplot(table,aes(x=Arg.ES, y=ES))+
-        geom_point(aes(col=highlight))+
-        labs(title="Transcription factor enrichment", subtitle="HUVEC cells under hypoxia",
+    ggplot2::ggplot(table,ggplot2::aes(x=Arg.ES, y=ES))+
+        ggplot2::geom_point(ggplot2::aes(col=highlight))+
+        ggplot2::labs(title="Transcription factor enrichment", subtitle="HUVEC cells under hypoxia",
              y="Enrichment score", x="Argument",
              caption="To limit this file's size, only static versions of the plots are shown in this vignette")+
-        theme_bw()+
-        scale_color_manual(name="TF",
+        ggplot2::theme_bw()+
+        ggplot2::scale_color_manual(name="TF",
                            values = c("Other"="lightsteelblue3",
                                       "EPAS1"="red",
                                       "ARNT"="blue"))+
-        geom_hline(yintercept = 0)
+        ggplot2::geom_hline(yintercept = 0)
 }
 ```
 
@@ -214,9 +215,10 @@ if("ggplot2" %in% rownames(installed.packages()) == TRUE){
 plot_RES(GSEA_result = GSEA.result,LFC = hypoxia.sorted$log2FoldChange,TF=c("EPAS1"),Accession=c("GSM2390642","GSM1642766"))
 ```
 ```{r eval=TRUE,echo=FALSE,fig.height=4,fig.width=7}
-if("ggplot2" %in% rownames(installed.packages()) == TRUE){ 
-    # If ggplot2 is installed, the vignette will include static plots
+if("ggplot2" %in% rownames(installed.packages()) == TRUE & "tydyr" %in% rownames(installed.packages()) == TRUE){ 
+    # If ggplot2 and tydyr are installed, the vignette will include static plots
     # as an example of those generated with plot_CM, plot_ES, and plot_RES
+    requireNamespace("tidyr")
 
     table<-data.frame(
         argument=c(1:length(GSEA.result$RES[[1]])),
@@ -225,13 +227,13 @@ if("ggplot2" %in% rownames(installed.packages()) == TRUE){
     )
     table %>%
         tidyr::gather(Accesion,value, GSM2390642, GSM1642766) %>%
-        ggplot(aes(x=argument, y=value, colour=Accesion)) +
-        geom_line()+
-        labs(title="Running Enrichment Scores", subtitle="HUVEC cells under hypoxia",
+        ggplot2::ggplot(ggplot2::aes(x=argument, y=value, colour=Accesion)) +
+        ggplot2::geom_line()+
+        ggplot2::labs(title="Running Enrichment Scores", subtitle="HUVEC cells under hypoxia",
              y="RES", x="Argument",
              caption="To limit this file's size, only static versions of the plots are shown in this vignette")+
-        theme_bw()+
-        geom_hline(yintercept = 0)
+        ggplot2::theme_bw()+
+        ggplot2::geom_hline(yintercept = 0)
 }
 ```
 
