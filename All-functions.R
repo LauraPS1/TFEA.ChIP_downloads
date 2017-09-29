@@ -11,30 +11,30 @@
 #' @import org.Hs.eg.db
 ################### FUNCTIONS ####
 
-txt2GR<-function(fileTable,format,GRfolder,fileMetaData){
+txt2GR<-function(fileTable,format,fileMetaData){
 
-    #' @title Function to filter a ChIP-Seq output.
+    #' @title Function to filter a ChIP-Seq input.
     #' @description Function to filter a ChIP-Seq output (in .narrowpeak or MACS's peaks.bed formats) and
     #' then store the peak coordinates in a GenomicRanges object, associated to its metadata.
     #' @param fileTable data frame from a txt/tsv/bed file
     #' @param format "narrowPeak" or "macs".
     #' narrowPeak fields:'chrom','chromStart','chromEnd','name','score','strand','signalValue','pValue','qValue','peak'
     #' macs fields: 'chrom','chromStart','chromEnd','name','qValue'
-    #' @param GRfolder Path to the folder to save the GR objects
     #' @param fileMetaData Data frame/matrix/array contaning the following fields: 'Name','Accession','Cell','Cell Type','Treatment','Antibody','TF'.
-    #' @return The function saves the GR object generated in a .Rdata file in GRfolder.
+    #' @return The function returns a GR object generated from the ChIP-Seq dataset input.
     #' @export txt2GR
     #' @examples
-    #' txt2GR(smad4_peaks.bed,"macs","~/folder/GR",SMAD4_metaData)
+    #' data("ARNT.peaks.bed","ARNT.metadata",package = "TFEA.ChIP")
+    #' ARNT.gr<-txt2GR(ARNT.peaks.bed,"macs",ARNT.metadata)
 
     requireNamespace("GenomicRanges")
     requireNamespace("IRanges")
     requireNamespace("dplyr")
 
-    if (is.data.frame(fileMetaData)==F){
+    if (is.data.frame(fileMetaData)==FALSE){
         if(is.matrix(fileMetaData)){
             if(length(fileMetaData[1,])==7){
-                fileMetaData<-as.data.frame(fileMetaData,stringsAsFactors=F)
+                fileMetaData<-as.data.frame(fileMetaData,stringsAsFactors=FALSE)
             }else{
                 warning("fileMetaData format error: 'fileMetaData' must be a data frame/matrix/array
                         with 7 atributes: 'Name','Accession','Cell','Cell Type','Treatment','Antibody','TF'")
@@ -42,7 +42,7 @@ txt2GR<-function(fileTable,format,GRfolder,fileMetaData){
             }
         }else if(is.array(fileMetaData)){
             if(length(fileMetaData)==7){
-                fileMetaData<-as.data.frame(fileMetaData,stringsAsFactors=F)
+                fileMetaData<-as.data.frame(fileMetaData,stringsAsFactors=FALSE)
             }else{
                 warning("fileMetaData format error: 'fileMetaData' must be a data frame/matrix/array
                         with 7 atributes: 'Name','Accession','Cell','Cell Type','Treatment','Antibody','TF'")
@@ -90,8 +90,8 @@ txt2GR<-function(fileTable,format,GRfolder,fileMetaData){
             score=fileTable$score,
             mcols=MDframe
         )
-
-        save(gr,file = paste0(GRfolder,"/",fileMetaData$Accession,".Rdata"))
+        names(gr)<-MDframe$Accession[1]
+        return(gr)
 
     }else if(format=="macs"){
 
@@ -124,8 +124,8 @@ txt2GR<-function(fileTable,format,GRfolder,fileMetaData){
             score=fileTable$score,
             mcols=MDframe
         )
-
-        save(gr,file = paste0(GRfolder,"/",fileMetaData$Accession,".Rdata"))
+        names(gr)<-MDframe$Accession[1]
+        return(gr)
 
     }else{
         warning("Wrong file format. Only narrowPeak or MACS output ('_peaks.bed') are supported.
@@ -134,18 +134,18 @@ txt2GR<-function(fileTable,format,GRfolder,fileMetaData){
     }
 }
 
-GR2tfbs_db<-function(Dnase.db,gr.list,GRfolder){
+GR2tfbs_db<-function(Dnase.db,gr.list){
 
     #' @title Makes a TF-gene binding database
     #' @description GR2tfbs_db generates a TF-gene binding database from ChIP-Seq peak coordinates
     #' in GenomicRange objects.
     #' @param Dnase.db GenomicRanges object containing a database of Dnase hipersensitive sites
-    #' @param gr.list Vector of paths to .Rdata files containing each one a GenomicRanges object (output of txt2GR)
-    #' @param GRfolder Path to the folder storing the .Rdata files.
+    #' @param gr.list List of GR objects containing ChIP-seq peak coordinates (output of txt2GR).
     #' @return List of vectors, one for every ChIP-Seq, storing the IDs of the genes to which the TF bound in the ChIP-Seq.
     #' @export GR2tfbs_db
     #' @examples
-    #' GR2tfbs_db(Dnase.db=DnaseHS.db, gr.list=dir("~/folder/GR"),GRfolder="~/folder/GR")
+    #' data("DnaseHS_db","gr.list", package="TFEA.ChIP")
+    #' GR2tfbs_db(DnaseHS_db, gr.list)
 
     if(!requireNamespace("S4Vectors", quietly = TRUE)){
         stop("S4Vectors package needed for this function to work. Please install it.",
@@ -157,14 +157,14 @@ GR2tfbs_db<-function(Dnase.db,gr.list,GRfolder){
 
     for(i in 1:length(gr.list)){
 
-        load(paste0(GRfolder,"/",gr.list[i]))
+        gr<-gr.list[[i]]
 
         nearest_index<-suppressWarnings(GenomicRanges::distanceToNearest(gr,Dnase.db,select="all"))
         nearest_index<-nearest_index[!is.na(nearest_index@elementMetadata@listData$distance)]
         nearest_index<-nearest_index[nearest_index@elementMetadata@listData$distance<10]
         inSubject<-S4Vectors::subjectHits(nearest_index)
 
-        if(length(inSubject)==0){
+        if(length(inSubject)==0){ # in case any ChIP-Seq dataset does not have any genes to assign.
             m<-m+1
             next
         }
@@ -174,12 +174,10 @@ GR2tfbs_db<-function(Dnase.db,gr.list,GRfolder){
 
         if (i==1){
             TFgenes_list<-list(assigned_genes)
-            names(TFgenes_list)[i]<-substr(gr.list[i],1,nchar(gr.list[i])-6)
-            rm(nearest_index,inSubject,assigned_genes)
+            names(TFgenes_list)[i]<-names(gr.list)[i]
         }else{
             TFgenes_list<-c(TFgenes_list,list(assigned_genes))
-            names(TFgenes_list)[i-m]<-substr(gr.list[i],1,nchar(gr.list[i])-6)
-            rm(nearest_index,inSubject,assigned_genes)
+            names(TFgenes_list)[i-m]<-names(gr.list)[i]
         }
     }
 
@@ -200,7 +198,7 @@ SearchID<-function(GeneID,id_db){
     TF_row<-rep(0,length=length(id_db))
 
     for (i in 1:length(id_db)){
-        if (GeneID %in% id_db[[i]]==T){TF_row[i]<-1}
+        if (GeneID %in% id_db[[i]]==TRUE){TF_row[i]<-1}
     }
     return(TF_row)
 }
@@ -214,7 +212,8 @@ makeTFBSmatrix<-function(GeneList,id_db){
     #' @return 1/0 matrix. Each row represents a gene, each column, a ChIP-Seq file.
     #' @export makeTFBSmatrix
     #' @examples
-    #' makeTFBSmatrix(GeneList,id_db)
+    #' data("tfbs.database","Entrez.gene.IDs",package = "TFEA.ChIP")
+    #' makeTFBSmatrix(Entrez.gene.IDs,tfbs.database)
 
     for (i in 1:length(GeneList)){
 
@@ -241,15 +240,17 @@ set_user_data<-function(metadata,binary_matrix){
     #' @param metadata Data frame/matrix/array contaning the following fields: 'Name','Accession','Cell','Cell Type','Treatment','Antibody','TF'.
     #' @param binary_matrix Matrix[n,m] which rows correspond to all the human genes that have been assigned an Entrez ID, and its columns, to every ChIP-Seq experiment in the database.
     #' The values are 1 – if the ChIP-Seq has a peak assigned to that gene – or 0 – if it hasn’t –.
+    #' @return sets the user's metadata table and TFBS matrix as the variables "MetaData" and "Mat01", used by the rest of the package.
     #' @export set_user_data
     #' @examples
+    #' data("MetaData","Mat01",package="TFEA.ChIP") # For this example, we will use the variables already included in the package.
     #' set_user_data(MetaData,Mat01)
 
     assign("MetaData", metadata, envir = .GlobalEnv)
     assign("Mat01",binary_matrix,envir = .GlobalEnv)
 }
 
-GeneID2entrez<-function(gene.IDs,return.Matrix = F){
+GeneID2entrez<-function(gene.IDs,return.Matrix = FALSE){
 
     #' @title Translates gene IDs from Gene Symbol or Ensemble Gene ID to Entrez Gene ID.
     #' @description Translates gene IDs from Gene Symbol or Ensemble Gene ID to Entrez Gene ID using the IDs approved by HGNC.
@@ -261,8 +262,8 @@ GeneID2entrez<-function(gene.IDs,return.Matrix = F){
     #' @return Vector or matrix containing the Entrez IDs(or NA) corresponding to every element of the input.
     #' @export GeneID2entrez
     #' @examples
-    #' GeneID2entrez(c("KLHL13","PROM1","ZNF663P","GYS1","LPHN3","ERO1L","EGLN3"))
-    #' GeneID2entrez(c("ENSG00000121410","ENSG00000156006","ENSG00000196839"),return.Matrix=T)
+    #' GeneID2entrez(c("TNMD","DPM1","SCYL3","FGR","CFH","FUCA2","GCLC","NFYA","STPG1"))
+
 
     requireNamespace("biomaRt")
     requireNamespace("GenomicFeatures")
@@ -270,24 +271,23 @@ GeneID2entrez<-function(gene.IDs,return.Matrix = F){
     Genes<-GenomicFeatures::genes(TxDb.Hsapiens.UCSC.hg19.knownGene)
     suppressMessages(GeneNames<-biomaRt::select(org.Hs.eg.db, Genes$gene_id, c("SYMBOL", "ENSEMBL")))#suppressWarnings added to avoid 'select()' returned 1:many mapping between keys and columns
 
-    if(grepl("ENSG0",gene.IDs[1])==T){ID.type<-"ENSEMBL"
+    if(grepl("ENSG0",gene.IDs[1])==TRUE){ID.type<-"ENSEMBL"
     }else{ID.type<-"SYMBOL"}
 
     tmp<-match(as.character(gene.IDs),GeneNames[,ID.type])
     tmp2<-match(GeneNames[,ID.type],as.character(gene.IDs))
 
-    if(sum(duplicated(tmp2[!is.na(tmp2)]))>0){warning("Some genes returned 1:many mapping to ENTREZ ID. Genes were assigned the first ENTREZ ID match found.",call. =F)}
+    if(sum(duplicated(tmp2[!is.na(tmp2)]))>0){warning("Some genes returned 1:many mapping to ENTREZ ID. Genes were assigned the first ENTREZ ID match found.\n",call. =FALSE)}
 
     cat("Done! ",length(tmp[!is.na(tmp)])," genes of ",length(tmp)," successfully translated.\n")
-    if (length(tmp[is.na(tmp)])>0){cat("Couldn't find Entrez IDs for ",length(tmp[is.na(tmp)])," genes (NAs returned instead).\n")}
 
-    if(return.Matrix==T){
-        return(data.frame(GENE.ID=gene.IDs,ENTREZ.ID=GeneNames[tmp,"ENTREZID"]))
+    if(return.Matrix==TRUE){
         if (length(tmp[is.na(tmp)])>0){cat("Couldn't find Entrez IDs for ",length(tmp[is.na(tmp)])," genes (NAs returned instead).\n")}
+        return(data.frame(GENE.ID=gene.IDs,ENTREZ.ID=GeneNames[tmp,"ENTREZID"]))
     }else{
-        return(GeneNames[tmp[!is.na(tmp)],"ENTREZID"])
         if (length(tmp[is.na(tmp)])>0){cat("Couldn't find Entrez IDs for ",length(tmp[is.na(tmp)]),"genes.\n")}
-    }
+        return(GeneNames[tmp[!is.na(tmp)],"ENTREZID"])
+        }
 }
 
 get_chip_index<-function(database = "g",TFfilter = NULL){
@@ -340,7 +340,8 @@ contingency_matrix<-function(test_list,control_list,chip_index=get_chip_index())
     #' @return List of contingency matrices, one CM per element in chip_index (i.e. per ChIP-seq dataset).
     #' @export contingency_matrix
     #' @examples
-    #' contingency_matrix(Genes.Upreg)
+    #' data("Genes.Upreg",package = "TFEA.ChIP")
+    #' CM_list_UP <- contingency_matrix(Genes.Upreg)
 
     requireNamespace("utils")
 
@@ -351,7 +352,7 @@ contingency_matrix<-function(test_list,control_list,chip_index=get_chip_index())
     }else{
         control_list<-control_list[!(control_list %in% test_list)]
     }
-    if (exists("Mat01")==F){data("Mat01",package = "TFEA.ChIP",envir = environment())}
+    if (exists("Mat01")==FALSE){data("Mat01",package = "TFEA.ChIP",envir = environment())}
     Matrix1<-Mat01[rownames(Mat01)%in%test_list,colnames(Mat01)%in%chip_index$Accession]
     Matrix2<-Mat01[rownames(Mat01)%in%control_list,colnames(Mat01)%in%chip_index$Accession]
 
@@ -396,7 +397,8 @@ getCMstats<-function(contMatrix_list,chip_index=get_chip_index()){
     #' in that experiment, raw p-value (-10*log10 pvalue), odds-ratio and FDR-adjusted p-values (-10*log10 adj.pvalue).
     #' @export getCMstats
     #' @examples
-    #' getCMstats(contMatrix_list_UP)
+    #' data("CM_list",package = "TFEA.ChIP")
+    #' stats_mat_UP <- getCMstats(CM_list)
 
     requireNamespace("stats")
 
@@ -413,7 +415,7 @@ getCMstats<-function(contMatrix_list,chip_index=get_chip_index()){
 
     statMat<-data.frame(Accession=chip_index$Accession,TF=chip_index$TF,p.value=NA,OR=NA)
     for (idx in names(contMatrix_list)){
-        FTres<-try({stats::fisher.test(x=contMatrix_list[[idx]])},silent = T)
+        FTres<-try({stats::fisher.test(x=contMatrix_list[[idx]])},silent = TRUE)
         if(class(FTres)=="htest"){
             statMat$p.value[which(statMat$Accession==idx)]<-FTres$p.value
             statMat$OR[which(statMat$Accession==idx)]<-FTres$estimate
@@ -467,7 +469,7 @@ GSEA_EnrichmentScore <- function(gene.list, gene.set, weighted.score.type = 0, c
     #' tag.indicator: Binary vector indicating the location of the gene sets (1's) in the gene list
     #' @export GSEA_EnrichmentScore
     #' @examples
-    #' GSEA_EnrichmentScore(gene.list, ARNT.ChIP.genes, weighted.score.type = 0, correl.vector = NULL)
+    #' GSEA_EnrichmentScore(gene.list=c("3091","2034","405","55818"),gene.set=c("2034","112399","405"))
 
     tag.indicator <- sign(match(gene.list, gene.set, nomatch=0))
     no.tag.indicator <- 1 - tag.indicator
@@ -524,7 +526,7 @@ GSEA_Shuffling<-function(gene.list,permutations){
     return(shuffledGL)
 }
 
-GSEA_run<-function(gene.list,chip_index=get_chip_index(),get.RES = F,RES.filter = NULL){
+GSEA_run<-function(gene.list,chip_index=get_chip_index(),get.RES = FALSE,RES.filter = NULL){
 
     #' @title Function to run a GSEA analysis with an ID database.
     #' @description Function to run a GSEA analysis with an TF-gene binding database.
@@ -539,8 +541,9 @@ GSEA_run<-function(gene.list,chip_index=get_chip_index(),get.RES = F,RES.filter 
     #' indicators (optional): list of 0/1 vectors that stores the matches (1) and mismatches (0) between the gene list and the gene set.
     #' @export GSEA_run
     #' @examples
-    #' GSEA_run(Arranged.Gene.List, chip.index)
-    #' GSEA_run(Arranged.Gene.List, chip.index, get.RES = T, RES.filter =c("SMAD2","SMAD4") )
+    #' data("Entrez.gene.IDs",package = "TFEA.ChIP")
+    #' chip_index<-get_chip_index(TFfilter = c("HIF1A","EPAS1","ARNT"))
+    #' GSEA.result <- GSEA_run(Entrez.gene.IDs,chip_index,get.RES = TRUE)
 
     requireNamespace("stats")
     requireNamespace("utils")
@@ -554,7 +557,7 @@ GSEA_run<-function(gene.list,chip_index=get_chip_index(),get.RES = F,RES.filter 
     pval<-vector()
     enrichmentArg<-vector()
 
-    if(get.RES==T){
+    if(get.RES==TRUE){
         res<-list()
         ind<-list()
     }
@@ -575,12 +578,12 @@ GSEA_run<-function(gene.list,chip_index=get_chip_index(),get.RES = F,RES.filter 
             pval[i]<-sum(abs(shuffled.ES) >= abs(result$ES)) / 1000
             enrichmentArg[i]<-result$arg.ES
 
-            if(get.RES==T & missing(RES.filter)){ # Store running sums of selected TFs.
+            if(get.RES==TRUE & missing(RES.filter)){ # Store running sums of selected TFs.
                 res<-c(res,list(result$RES))
                 names(res)[length(res)]<-chip_index$Accession[i]
                 ind<-c(ind,list(result$indicator))
                 names(ind)[length(ind)]<-chip_index$Accession[i]
-            }else if(get.RES==T & missing(RES.filter)==F){
+            }else if(get.RES==TRUE & missing(RES.filter)==FALSE){
                 if(chip_index$TF[i]%in%RES.filter){
                     res<-c(res,list(result$RES))
                     names(res)[length(res)]<-chip_index$Accession[i]
@@ -600,7 +603,7 @@ GSEA_run<-function(gene.list,chip_index=get_chip_index(),get.RES = F,RES.filter 
     enrichmentTable<-cbind(chip_index$Accession,chip_index$TF,as.numeric(enrichmentScore),
                                 as.numeric(pval.adj),as.numeric(enrichmentArg))
 
-    enrichmentTable<-as.data.frame(enrichmentTable,stringsAsFactors=F)
+    enrichmentTable<-as.data.frame(enrichmentTable,stringsAsFactors=FALSE)
     colnames(enrichmentTable)<-c("Accession","TF","ES","pval.ES","Arg.ES")
     enrichmentTable$ES<-as.numeric(enrichmentTable$ES)
     enrichmentTable$pval.ES<-as.numeric(enrichmentTable$pval.ES)
@@ -608,7 +611,7 @@ GSEA_run<-function(gene.list,chip_index=get_chip_index(),get.RES = F,RES.filter 
 
     enrichmentTable<-enrichmentTable[!is.na(enrichmentTable$pval.ES),]
 
-    if(get.RES==T){
+    if(get.RES==TRUE){
         GSEA_results<-list(enrichmentTable,res,ind)
         names(GSEA_results)<-c("Enrichment.table","RES","indicators")
         return(GSEA_results)
@@ -631,8 +634,8 @@ plot_CM<-function(CM.statMatrix,plot_title = NULL,specialTF = NULL,TF_colors = N
     #' @return plotly scatter plot.
     #' @export plot_CM
     #' @examples
-    #' plot_CM(CM.statMatrix_UP, "Enriquecimiento TF en GSE69303 (upreg)", specialTF,colors)
-    #' plot_CM(CM.statMatrix_UP)
+    #' data("stat_mat",package = "TFEA.ChIP")
+    #' plot_CM(stat_mat)
 
     if(!requireNamespace("plotly", quietly = TRUE)){
         stop("plotly package needed for this function to work. Please install it.",
@@ -727,8 +730,11 @@ plot_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_colors =
     #' @return Plotly object with a scatter plot -Enrichment scores- and a heatmap -log2(fold change) bar-.
     #' @export plot_ES
     #' @examples
-    #' plot_ES(GSEA_result,LFC,"Transcription Factor Enrichment",specialTF,colors)
-    #' plot_ES(GSEA_result=GSEA_result,LFC=LFC)
+    #' data("GSEA.result","log2.FC",package = "TFEA.ChIP")
+    #' TF.hightlight<-c("EPAS1")
+    #' names(TF.hightlight)<-c("EPAS1")
+    #' col<- c("red")
+    #' plot_ES(GSEA.result,log2.FC,specialTF = TF.hightlight,TF_colors = col)
 
     if(!requireNamespace("plotly", quietly = TRUE)){
         stop("plotly package needed for this function to work. Please install it.",
@@ -737,9 +743,9 @@ plot_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_colors =
     requireNamespace("dplyr")
     requireNamespace("plotly")
 
-    if(is.list(GSEA_result)==T){
+    if(is.list(GSEA_result)==TRUE){
         enrichmentTable<-GSEA_result$Enrichment
-    }else if(is.data.frame(GSEA_result)==T){
+    }else if(is.data.frame(GSEA_result)==TRUE){
         enrichmentTable<-GSEA_result
     }
 
@@ -840,8 +846,8 @@ plot_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.sty
     #' @return Plotly object with a line plot -running sums- and a heatmap -log2(fold change) bar-.
     #' @export plot_RES
     #' @examples
-    #' plot_all_RES(GSEA_result,LFC,"Transcription Factor Enrichment",colors.RES,lines.RES)
-    #' plot_all_RES(GSEA_result=GSEA_result,LFC=LFC)
+    #' data("GSEA.result","log2.FC",package = "TFEA.ChIP")
+    #' plot_RES(GSEA.result,log2.FC,TF=c("EPAS1"),Accession=c("GSM2390642","GSM2390643"))
 
     if(!requireNamespace("plotly", quietly = TRUE)){
         stop("plotly package needed for this function to work. Please install it.",
@@ -889,7 +895,7 @@ plot_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.sty
         TF[i]<-tf[tf[,1]==Accession[i],2]
         RES<-c(RES,GSEA.runningSum[names(GSEA.runningSum)%in%Accession[i]][1])
     }
-    tabla<-data.frame(Accession,Cell,Treatment,TF,stringsAsFactors = F)
+    tabla<-data.frame(Accession,Cell,Treatment,TF,stringsAsFactors = FALSE)
     tabla$RES<-RES
 
     rm(Cell,Treatment,TF,RES)
@@ -994,7 +1000,7 @@ get_LFC_bar<-function(LFC){
     requireNamespace("scales")
 
     vals <- scales::rescale(LFC)
-    o <- order(vals, decreasing = F)
+    o <- order(vals, decreasing = FALSE)
     cols1 <- scales::col_numeric(grDevices::colorRamp(c("mistyrose","red3")), domain = NULL)(vals[1:length(LFC[LFC>0])])
     cols2 <- scales::col_numeric(grDevices::colorRamp(c("navy","lightcyan")), domain = NULL)(vals[length(LFC[LFC>0])+1:length(LFC)])
     cols<-c(cols1,cols2)
@@ -1003,7 +1009,7 @@ get_LFC_bar<-function(LFC){
 
     LFC.bar<-plotly::plot_ly(x=c(1:length(LFC)), y=rep(1,length(LFC)),
                              z = LFC, type = "heatmap",colorscale=colz,showscale = FALSE)%>%
-        plotly::layout(yaxis=list(visible=F))
+        plotly::layout(yaxis=list(visible=FALSE))
 
     return(LFC.bar)
 }
