@@ -37,7 +37,7 @@ txt2GR<-function(fileTable,format,fileMetaData){
                 fileMetaData<-as.data.frame(fileMetaData,stringsAsFactors=FALSE)
             }else{
                 warning("fileMetaData format error: 'fileMetaData' must be a data frame/matrix/array
-                        with 7 atributes: 'Name','Accession','Cell','Cell Type','Treatment','Antibody','TF'")
+                    with 7 atributes: 'Name','Accession','Cell','Cell Type','Treatment','Antibody','TF'")
                 break
             }
         }else if(is.array(fileMetaData)){
@@ -45,12 +45,12 @@ txt2GR<-function(fileTable,format,fileMetaData){
                 fileMetaData<-as.data.frame(fileMetaData,stringsAsFactors=FALSE)
             }else{
                 warning("fileMetaData format error: 'fileMetaData' must be a data frame/matrix/array
-                        with 7 atributes: 'Name','Accession','Cell','Cell Type','Treatment','Antibody','TF'")
+                    with 7 atributes: 'Name','Accession','Cell','Cell Type','Treatment','Antibody','TF'")
                 break
             }
         }else{
             warning("fileMetaData format error: 'fileMetaData' must be a data frame/matrix/array
-                    with 7 atributes: 'Name','Accession','Cell','Cell Type','Treatment','Antibody','TF'")
+                with 7 atributes: 'Name','Accession','Cell','Cell Type','Treatment','Antibody','TF'")
             break
         }
         }
@@ -79,12 +79,10 @@ txt2GR<-function(fileTable,format,fileMetaData){
         }
 
         fileMetaData<-c(fileMetaData,Stat)
-
         MDframe<-as.data.frame(lapply(fileMetaData, rep,length(fileTable[,1])))
         colnames(MDframe)<-c("Name","Accession","Cell","Cell Type","Treatment","Antibody","TF","Score Type")
 
         gr<-GenomicRanges::GRanges(
-
             seqnames=fileTable$chr,
             ranges=IRanges::IRanges(fileTable$start,end=fileTable$end),
             score=fileTable$score,
@@ -113,12 +111,10 @@ txt2GR<-function(fileTable,format,fileMetaData){
         }
 
         fileMetaData<-c(fileMetaData,Stat)
-
         MDframe<-as.data.frame(lapply(fileMetaData, rep,length(fileTable[,1])))
         colnames(MDframe)<-c("Name","Accession","Cell","Cell Type","Treatment","Antibody","TF","Score Type")
 
         gr<-GenomicRanges::GRanges(
-
             seqnames=fileTable$chr,
             ranges=IRanges::IRanges(fileTable$start,end=fileTable$end),
             score=fileTable$score,
@@ -601,7 +597,7 @@ GSEA_run<-function(gene.list,chip_index=get_chip_index(),get.RES = FALSE,RES.fil
     pval.adj<-stats::p.adjust(pval,"fdr") # Adjust pvalues
 
     enrichmentTable<-cbind(chip_index$Accession,chip_index$TF,as.numeric(enrichmentScore),
-                            as.numeric(pval.adj),as.numeric(enrichmentArg))
+        as.numeric(pval.adj),as.numeric(enrichmentArg))
 
     enrichmentTable<-as.data.frame(enrichmentTable,stringsAsFactors=FALSE)
     colnames(enrichmentTable)<-c("Accession","TF","ES","pval.ES","Arg.ES")
@@ -651,7 +647,7 @@ plot_CM<-function(CM.statMatrix,plot_title = NULL,specialTF = NULL,TF_colors = N
     }
     if (!is.null(specialTF) & is.null(TF_colors)){
         TF_colors<-c("red","blue","green","hotpink","cyan","greenyellow","gold",
-                     "darkorchid","chocolate1","black","lightpink","seagreen")
+            "darkorchid","chocolate1","black","lightpink","seagreen")
         TF_colors<-TF_colors[1:length(unique(names(specialTF)))]
         highlight_list<-highlight_TF(CM.statMatrix,2,specialTF,TF_colors)
         CM.statMatrix$highlight<-highlight_list[[1]]
@@ -662,7 +658,9 @@ plot_CM<-function(CM.statMatrix,plot_title = NULL,specialTF = NULL,TF_colors = N
         CM.statMatrix$highlight<-highlight_list[[1]]
         markerColors<-highlight_list[[2]]
     }
-    if (!exists("MetaData")){data("MetaData",package = "TFEA.ChIP",envir = environment())}
+    if (!exists("MetaData")){
+        data("MetaData",package = "TFEA.ChIP",envir = environment())
+    }
     MetaData<-MetaData[MetaData$Accession%in%CM.statMatrix$Accession,]
     MetaData<-dplyr::arrange(MetaData,Accession)
     CM.statMatrix<-dplyr::arrange(CM.statMatrix,Accession)
@@ -672,20 +670,23 @@ plot_CM<-function(CM.statMatrix,plot_title = NULL,specialTF = NULL,TF_colors = N
 
     if(length(CM.statMatrix[CM.statMatrix$OR==Inf,1])>0){
         warn_number<-length(CM.statMatrix[CM.statMatrix$OR==Inf,1])
-        CM.statMatrix[CM.statMatrix$OR==Inf,]$OR<-rep(max(CM.statMatrix[CM.statMatrix$OR!=Inf,]$OR),
-                                                      length(CM.statMatrix[CM.statMatrix$OR==Inf,1]))
+        CM.statMatrix[CM.statMatrix$OR==Inf,]$OR<-rep(
+            max(CM.statMatrix[CM.statMatrix$OR!=Inf,]$OR),
+            length(CM.statMatrix[CM.statMatrix$OR==Inf,1]))
         warning(warn_number," elements have an Odds Ratio of Inf. Maximum value for OR introduced instead.")
     }
     if(length(CM.statMatrix[CM.statMatrix$OR==-Inf,1])>0){
         warn_number<-length(CM.statMatrix[CM.statMatrix$OR==-Inf,1])
-        CM.statMatrix[CM.statMatrix$OR==-Inf,]$OR<-rep(min(CM.statMatrix[CM.statMatrix$OR!=-Inf,]$OR),
-                                                       length(CM.statMatrix[CM.statMatrix$OR==-Inf,1]))
+        CM.statMatrix[CM.statMatrix$OR==-Inf,]$OR<-rep(
+            min(CM.statMatrix[CM.statMatrix$OR!=-Inf,]$OR),
+            length(CM.statMatrix[CM.statMatrix$OR==-Inf,1]))
         warning(warn_number," elements have an Odds Ratio of -Inf. Minimum value for OR introduced instead.")
     }
     if(length(CM.statMatrix[CM.statMatrix$adj.p.value==0,1])>0){
         warn_number<-length(CM.statMatrix[CM.statMatrix$adj.p.value==0,1])
-        CM.statMatrix[CM.statMatrix$p.value==0,]$log.adj.pVal<-rep(max(CM.statMatrix[CM.statMatrix$adj.p.value!=0,]$log.adj.pVal),
-                                                                  length(CM.statMatrix[CM.statMatrix$adj.p.value==0,1]))
+        CM.statMatrix[CM.statMatrix$p.value==0,]$log.adj.pVal<-rep(
+            max(CM.statMatrix[CM.statMatrix$adj.p.value!=0,]$log.adj.pVal),
+            length(CM.statMatrix[CM.statMatrix$adj.p.value==0,1]))
         warning(warn_number," elements have a -log(p-Value) of Inf. Maximum value for -log(p-Val) introduced instead.")
     }
 
@@ -694,22 +695,26 @@ plot_CM<-function(CM.statMatrix,plot_title = NULL,specialTF = NULL,TF_colors = N
         CM.statMatrix_other<-CM.statMatrix[CM.statMatrix$highlight=="Other",]
 
         p<-plotly::plot_ly(CM.statMatrix_other, x=~log.adj.pVal,y=~OR,type="scatter",mode="markers",
-                            text=paste0(CM.statMatrix_other$Accession,": ",CM.statMatrix_other$TF,
-                                       '<br>Treatment: ',CM.statMatrix_other$Treatment,
-                                       '<br>Cell: ',CM.statMatrix_other$Cell),
-                            color = ~highlight, colors=markerColors)
-        p<-plotly::add_markers(p,x=CM.statMatrix_highlighted$log.adj.pVal, y=CM.statMatrix_highlighted$OR,type="scatter", mode="markers",
-                            text=paste0(CM.statMatrix_highlighted$Accession,": ",CM.statMatrix_highlighted$TF,
-                                           '<br>Treatment: ',CM.statMatrix_highlighted$Treatment,
-                                           '<br>Cell: ',CM.statMatrix_highlighted$Cell),
-                            color = CM.statMatrix_highlighted$highlight, colors=markerColors)%>%
-            plotly::layout(title=plot_title)
+            text=paste0(CM.statMatrix_other$Accession,": ",CM.statMatrix_other$TF,
+                '<br>Treatment: ',CM.statMatrix_other$Treatment,
+                '<br>Cell: ',CM.statMatrix_other$Cell),
+            color = ~highlight, colors=markerColors)
+
+        p<-plotly::add_markers(p,x=CM.statMatrix_highlighted$log.adj.pVal,
+            y=CM.statMatrix_highlighted$OR,type="scatter", mode="markers",
+            text=paste0(CM.statMatrix_highlighted$Accession,": ",CM.statMatrix_highlighted$TF,
+                '<br>Treatment: ',CM.statMatrix_highlighted$Treatment,
+                '<br>Cell: ',CM.statMatrix_highlighted$Cell),
+            color = CM.statMatrix_highlighted$highlight, colors=markerColors)%>%
+        plotly::layout(title=plot_title)
+
     }else if (length(markerColors)==1){
         p<-plotly::plot_ly(CM.statMatrix, x=~log.adj.pVal,y=~OR,type="scatter",mode="markers",
-                            text=paste0(CM.statMatrix$Accession,": ",CM.statMatrix$TF,
-                                       '<br>Treatment: ',CM.statMatrix$Treatment,
-                                       '<br>Cell: ',CM.statMatrix$Cell),
-                            color = ~highlight, colors=markerColors)
+            text=paste0(CM.statMatrix$Accession,": ",CM.statMatrix$TF,
+                '<br>Treatment: ',CM.statMatrix$Treatment,
+                '<br>Cell: ',CM.statMatrix$Cell),
+            color = ~highlight, colors=markerColors)%>%
+        plotly::layout(title=plot_title)
     }
     p
     return(p)
@@ -767,7 +772,7 @@ plot_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_colors =
 
     if (!is.null(specialTF) & is.null(TF_colors)){
         TF_colors<-c("red","blue","green","hotpink","cyan","greenyellow","gold",
-                     "darkorchid","chocolate1","black","lightpink","seagreen")
+            "darkorchid","chocolate1","black","lightpink","seagreen")
         TF_colors<-TF_colors[1:length(unique(names(specialTF)))]
         highlight_list<-highlight_TF(enrichmentTable,2,specialTF,TF_colors)
         enrichmentTable$highlight<-highlight_list[[1]]
@@ -798,36 +803,42 @@ plot_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_colors =
         enrichmentTable_highlighted<-enrichmentTable[enrichmentTable$highlight!="Other",]
         enrichmentTable_other<-enrichmentTable[enrichmentTable$highlight=="Other",]
 
-        p<-plotly::plot_ly(enrichmentTable_other, x=enrichmentTable_other$Arg.ES,y=enrichmentTable_other$ES, type="scatter", mode="markers",
-                            text=paste0(enrichmentTable_other$Accession,": ",enrichmentTable_other$TF,
-                                       '<br>Pval: ',round(enrichmentTable_other$pval.ES,3),
-                                       '<br>Treatment: ',enrichmentTable_other$Treatment,
-                                       '<br>Cell: ',enrichmentTable_other$Cell),
-                            color=enrichmentTable_other$highlight, colors=markerColors, symbol=enrichmentTable_other$symbol,
-                            symbols=c("x","circle"))
+        p<-plotly::plot_ly(enrichmentTable_other, x=enrichmentTable_other$Arg.ES,
+            y=enrichmentTable_other$ES, type="scatter", mode="markers",
+            text=paste0(enrichmentTable_other$Accession,": ",enrichmentTable_other$TF,
+                '<br>Pval: ',round(enrichmentTable_other$pval.ES,3),
+                '<br>Treatment: ',enrichmentTable_other$Treatment,
+                '<br>Cell: ',enrichmentTable_other$Cell),
+            color=enrichmentTable_other$highlight, colors=markerColors,
+            symbol=enrichmentTable_other$symbol, symbols=c("x","circle"))
 
-        p<-plotly::add_markers(p,x=enrichmentTable_highlighted$Arg.ES, y=enrichmentTable_highlighted$ES,type="scatter", mode="markers",
-                                text=paste0(enrichmentTable_highlighted$Accession,": ",enrichmentTable_highlighted$TF,
-                                           '<br>Pval: ',round(enrichmentTable_highlighted$pval.ES,3),
-                                           '<br>Treatment: ',enrichmentTable_highlighted$Treatment,
-                                           '<br>Cell: ',enrichmentTable_highlighted$Cell),
-                                color=enrichmentTable_highlighted$highlight, colors=markerColors,symbol=enrichmentTable_highlighted$symbol,
-                                symbols=c("x","circle"))%>%
-            plotly::layout(title=plot_title,
-                            xaxis = list(title = "Argument"),
-                            yaxis = list (title = "ES"))
+        p<-plotly::add_markers(p,x=enrichmentTable_highlighted$Arg.ES,
+            y=enrichmentTable_highlighted$ES,type="scatter", mode="markers",
+            text=paste0(enrichmentTable_highlighted$Accession,": ",enrichmentTable_highlighted$TF,
+                '<br>Pval: ',round(enrichmentTable_highlighted$pval.ES,3),
+                '<br>Treatment: ',enrichmentTable_highlighted$Treatment,
+                '<br>Cell: ',enrichmentTable_highlighted$Cell),
+            color=enrichmentTable_highlighted$highlight, colors=markerColors,
+            symbol=enrichmentTable_highlighted$symbol, symbols=c("x","circle"))%>%
+        plotly::layout(title=plot_title,
+            xaxis = list(title = "Argument"),
+            yaxis = list (title = "ES"))
     }else if (length(markerColors)==1){
-        p<-plotly::plot_ly(enrichmentTable, x=enrichmentTable$Arg.ES,y=enrichmentTable$ES, type="scatter", mode="markers",
-                            text=paste0(enrichmentTable$Accession,": ",enrichmentTable$TF,
-                                       '<br>Pval: ',round(enrichmentTable$pval.ES,3),
-                                       '<br>Treatment: ',enrichmentTable$Treatment,
-                                       '<br>Cell: ',enrichmentTable$Cell),
-                            color=enrichmentTable$highlight, colors=markerColors, symbol=enrichmentTable$symbol,
-                            symbols=c("x","circle"))
+        p<-plotly::plot_ly(enrichmentTable, x=enrichmentTable$Arg.ES,
+            y=enrichmentTable$ES, type="scatter", mode="markers",
+            text=paste0(enrichmentTable$Accession,": ",enrichmentTable$TF,
+                '<br>Pval: ',round(enrichmentTable$pval.ES,3),
+                '<br>Treatment: ',enrichmentTable$Treatment,
+                '<br>Cell: ',enrichmentTable$Cell),
+            color=enrichmentTable$highlight, colors=markerColors,
+            symbol=enrichmentTable$symbol, symbols=c("x","circle"))%>%
+        plotly::layout(title=plot_title,
+            xaxis = list(title = "Argument"),
+            yaxis = list (title = "ES"))
     }
     LFC.bar<-get_LFC_bar(LFC)
 
-    graf<-plotly::subplot(p,LFC.bar,shareX = TRUE,nrows = 2,heights = c(0.95, 0.05),titleY = TRUE)
+    graf<-plotly::subplot(p, LFC.bar, shareX=TRUE, nrows=2, heights=c(0.95, 0.05), titleY=TRUE)
     graf
     return(graf)
 }
@@ -860,8 +871,8 @@ plot_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.sty
     if (!is.null(Accession) | !is.null(TF)){
         if(is.null(Accession)){Accession<-GSEA_result$Enrichment.table$Accession}
         if(is.null(TF)){TF<-GSEA_result$Enrichment.table$TF}
-        GSEA_result$Enrichment.table<-GSEA_result$Enrichment.table[GSEA_result$Enrichment.table$Accession %in% Accession &
-                                                                       GSEA_result$Enrichment.table$TF %in% TF,]
+        GSEA_result$Enrichment.table<-GSEA_result$Enrichment.table[GSEA_result$Enrichment.table$Accession %in%
+            Accession & GSEA_result$Enrichment.table$TF %in% TF,]
         GSEA_result$RES<-GSEA_result$RES[names(GSEA_result$RES) %in% Accession]
         GSEA_result$indicators<-GSEA_result$indicators[names(GSEA_result$indicators %in% Accession)]
     }else{
@@ -870,7 +881,7 @@ plot_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.sty
 
     if(is.null(line.colors)){
         line.colors<-c("red","blue","green","hotpink","cyan","greenyellow","gold",
-                       "darkorchid","chocolate1","black","lightpink","seagreen")
+            "darkorchid","chocolate1","black","lightpink","seagreen")
         line.colors<-line.colors[1:length(names(GSEA_result$RES))]
     }
     if(is.null(line.styles)){line.styles<-rep("solid",length(names(GSEA_result$RES)))}
@@ -904,38 +915,38 @@ plot_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.sty
         for(i in 1:length(Accession)){
             if (i==1){
                 grafica<-plotly::plot_ly(tabla,x=c(1:length(tabla$RES[[1]])),
-                                         y=tabla$RES[[Accession[1]]],
-                                         type="scatter", mode="lines", line=list(color=line.colors[1],dash=line.styles[1]),
-                                         name=paste0(tabla$Accession[1]," - ",tabla$TF[1]),
-                                         text=paste0(tabla$Accession[1]," - ",tabla$TF[1],'<br>Cell: ',tabla$Cell[1],
-                                                     ' <br>Treatment: ',tabla$Treatment[1]))
+                    y=tabla$RES[[Accession[1]]],
+                    type="scatter", mode="lines", line=list(color=line.colors[1],dash=line.styles[1]),
+                    name=paste0(tabla$Accession[1]," - ",tabla$TF[1]),
+                    text=paste0(tabla$Accession[1]," - ",tabla$TF[1],'<br>Cell: ',tabla$Cell[1],
+                        ' <br>Treatment: ',tabla$Treatment[1]))
             }else if (i>1 & i<length(Accession)){
                 grafica<-plotly::add_trace(p = grafica,y=tabla$RES[[Accession[i]]],
-                                           type="scatter", mode="lines",line=list(color=line.colors[i],dash=line.styles[i]),
-                                           name=paste0(tabla$Accession[i]," - ",tabla$TF[i]),
-                                           text=paste0(tabla$Accession[i]," - ",tabla$TF[i],'<br>Cell: ',tabla$Cell[i],
-                                                       ' <br>Treatment: ',tabla$Treatment[i]))
+                    type="scatter", mode="lines",line=list(color=line.colors[i],dash=line.styles[i]),
+                    name=paste0(tabla$Accession[i]," - ",tabla$TF[i]),
+                    text=paste0(tabla$Accession[i]," - ",tabla$TF[i],'<br>Cell: ',tabla$Cell[i],
+                        ' <br>Treatment: ',tabla$Treatment[i]))
             }else if (i==length(Accession)){
                 grafica<-plotly::add_trace(p = grafica,y=tabla$RES[[Accession[i]]],
-                                           type="scatter", mode="lines",line=list(color=line.colors[i],dash=line.styles[i]),
-                                           name=paste0(tabla$Accession[i]," - ",tabla$TF[i]),
-                                           text=paste0(tabla$Accession[i]," - ",tabla$TF[i],'<br>Cell: ',tabla$Cell[i],
-                                                       ' <br>Treatment: ',tabla$Treatment[i]))%>%
-                    plotly::layout(title=plot_title,
-                                    xaxis = list(title = "Argument"),
-                                    yaxis = list (title = "ES"))
+                    type="scatter", mode="lines",line=list(color=line.colors[i],dash=line.styles[i]),
+                    name=paste0(tabla$Accession[i]," - ",tabla$TF[i]),
+                    text=paste0(tabla$Accession[i]," - ",tabla$TF[i],'<br>Cell: ',tabla$Cell[i],
+                        ' <br>Treatment: ',tabla$Treatment[i]))%>%
+                plotly::layout(title=plot_title,
+                    xaxis = list(title = "Argument"),
+                    yaxis = list (title = "ES"))
             }
         }
     }else{
         grafica<-plotly::plot_ly(tabla,x=c(1:length(tabla$RES[[1]])),
-                                y=tabla$RES[[Accession[1]]],
-                                type="scatter", mode="lines", line=list(color=line.colors[1],dash=line.styles[1]),
-                                name=paste0(tabla$Accession[1]," - ",tabla$TF[1]),
-                                text=paste0(tabla$Accession[i]," - ",tabla$TF[i],'<br>Cell: ',tabla$Cell[i],
-                                             ' <br>Treatment: ',tabla$Treatment[i]))%>%
-            plotly::layout(title=plot_title,
-                            xaxis = list(title = "Argument"),
-                            yaxis = list (title = "ES"))
+            y=tabla$RES[[Accession[1]]],
+            type="scatter", mode="lines", line=list(color=line.colors[1],dash=line.styles[1]),
+            name=paste0(tabla$Accession[1]," - ",tabla$TF[1]),
+            text=paste0(tabla$Accession[i]," - ",tabla$TF[i],'<br>Cell: ',tabla$Cell[i],
+                ' <br>Treatment: ',tabla$Treatment[i]))%>%
+        plotly::layout(title=plot_title,
+            xaxis = list(title = "Argument"),
+            yaxis = list (title = "ES"))
     }
     LFC.bar<-get_LFC_bar(LFC)
 
@@ -1001,15 +1012,17 @@ get_LFC_bar<-function(LFC){
 
     vals <- scales::rescale(LFC)
     o <- order(vals, decreasing = FALSE)
-    cols1 <- scales::col_numeric(grDevices::colorRamp(c("mistyrose","red3")), domain = NULL)(vals[1:length(LFC[LFC>0])])
-    cols2 <- scales::col_numeric(grDevices::colorRamp(c("navy","lightcyan")), domain = NULL)(vals[length(LFC[LFC>0])+1:length(LFC)])
+    cols1 <- scales::col_numeric(grDevices::colorRamp(c("mistyrose","red3")),
+        domain = NULL)(vals[1:length(LFC[LFC>0])])
+    cols2 <- scales::col_numeric(grDevices::colorRamp(c("navy","lightcyan")),
+        domain = NULL)(vals[length(LFC[LFC>0])+1:length(LFC)])
     cols<-c(cols1,cols2)
 
     colz <-data.frame(vals[o], cols[o])
 
     LFC.bar<-plotly::plot_ly(x=c(1:length(LFC)), y=rep(1,length(LFC)),
-                                z = LFC, type = "heatmap",colorscale=colz,showscale = FALSE)%>%
-        plotly::layout(yaxis=list(visible=FALSE))
+        z = LFC, type = "heatmap",colorscale=colz,showscale = FALSE)%>%
+    plotly::layout(yaxis=list(visible=FALSE))
 
     return(LFC.bar)
 }
