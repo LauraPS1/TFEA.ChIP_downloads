@@ -129,7 +129,7 @@ txt2GR<-function(fileTable,format,fileMetaData){
 
     }else{
         warning("Wrong file format. Only narrowPeak or MACS output ('_peaks.bed') are supported.
-              Please choose either 'narrowPeak' or 'Macs'.")
+            Please choose either 'narrowPeak' or 'Macs'.")
         break
     }
 }
@@ -149,7 +149,7 @@ GR2tfbs_db<-function(Dnase.db,gr.list){
 
     if(!requireNamespace("S4Vectors", quietly = TRUE)){
         stop("S4Vectors package needed for this function to work. Please install it.",
-             call. = FALSE)
+            call. = FALSE)
     }
     requireNamespace("S4Vectors")
 
@@ -601,7 +601,7 @@ GSEA_run<-function(gene.list,chip_index=get_chip_index(),get.RES = FALSE,RES.fil
     pval.adj<-stats::p.adjust(pval,"fdr") # Adjust pvalues
 
     enrichmentTable<-cbind(chip_index$Accession,chip_index$TF,as.numeric(enrichmentScore),
-                                as.numeric(pval.adj),as.numeric(enrichmentArg))
+                            as.numeric(pval.adj),as.numeric(enrichmentArg))
 
     enrichmentTable<-as.data.frame(enrichmentTable,stringsAsFactors=FALSE)
     colnames(enrichmentTable)<-c("Accession","TF","ES","pval.ES","Arg.ES")
@@ -639,7 +639,7 @@ plot_CM<-function(CM.statMatrix,plot_title = NULL,specialTF = NULL,TF_colors = N
 
     if(!requireNamespace("plotly", quietly = TRUE)){
         stop("plotly package needed for this function to work. Please install it.",
-             call. = FALSE)
+            call. = FALSE)
     }
     requireNamespace("plotly")
 
@@ -694,22 +694,22 @@ plot_CM<-function(CM.statMatrix,plot_title = NULL,specialTF = NULL,TF_colors = N
         CM.statMatrix_other<-CM.statMatrix[CM.statMatrix$highlight=="Other",]
 
         p<-plotly::plot_ly(CM.statMatrix_other, x=~log.adj.pVal,y=~OR,type="scatter",mode="markers",
-                           text=paste0(CM.statMatrix_other$Accession,": ",CM.statMatrix_other$TF,
+                            text=paste0(CM.statMatrix_other$Accession,": ",CM.statMatrix_other$TF,
                                        '<br>Treatment: ',CM.statMatrix_other$Treatment,
                                        '<br>Cell: ',CM.statMatrix_other$Cell),
-                           color = ~highlight, colors=markerColors)
+                            color = ~highlight, colors=markerColors)
         p<-plotly::add_markers(p,x=CM.statMatrix_highlighted$log.adj.pVal, y=CM.statMatrix_highlighted$OR,type="scatter", mode="markers",
-                               text=paste0(CM.statMatrix_highlighted$Accession,": ",CM.statMatrix_highlighted$TF,
+                            text=paste0(CM.statMatrix_highlighted$Accession,": ",CM.statMatrix_highlighted$TF,
                                            '<br>Treatment: ',CM.statMatrix_highlighted$Treatment,
                                            '<br>Cell: ',CM.statMatrix_highlighted$Cell),
-                               color = CM.statMatrix_highlighted$highlight, colors=markerColors)%>%
+                            color = CM.statMatrix_highlighted$highlight, colors=markerColors)%>%
             plotly::layout(title=plot_title)
     }else if (length(markerColors)==1){
         p<-plotly::plot_ly(CM.statMatrix, x=~log.adj.pVal,y=~OR,type="scatter",mode="markers",
-                           text=paste0(CM.statMatrix$Accession,": ",CM.statMatrix$TF,
+                            text=paste0(CM.statMatrix$Accession,": ",CM.statMatrix$TF,
                                        '<br>Treatment: ',CM.statMatrix$Treatment,
                                        '<br>Cell: ',CM.statMatrix$Cell),
-                           color = ~highlight, colors=markerColors)
+                            color = ~highlight, colors=markerColors)
     }
     p
     return(p)
@@ -738,7 +738,7 @@ plot_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_colors =
 
     if(!requireNamespace("plotly", quietly = TRUE)){
         stop("plotly package needed for this function to work. Please install it.",
-             call. = FALSE)
+            call. = FALSE)
     }
     requireNamespace("dplyr")
     requireNamespace("plotly")
@@ -799,31 +799,31 @@ plot_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_colors =
         enrichmentTable_other<-enrichmentTable[enrichmentTable$highlight=="Other",]
 
         p<-plotly::plot_ly(enrichmentTable_other, x=enrichmentTable_other$Arg.ES,y=enrichmentTable_other$ES, type="scatter", mode="markers",
-                           text=paste0(enrichmentTable_other$Accession,": ",enrichmentTable_other$TF,
+                            text=paste0(enrichmentTable_other$Accession,": ",enrichmentTable_other$TF,
                                        '<br>Pval: ',round(enrichmentTable_other$pval.ES,3),
                                        '<br>Treatment: ',enrichmentTable_other$Treatment,
                                        '<br>Cell: ',enrichmentTable_other$Cell),
-                           color=enrichmentTable_other$highlight, colors=markerColors, symbol=enrichmentTable_other$symbol,
-                           symbols=c("x","circle"))
+                            color=enrichmentTable_other$highlight, colors=markerColors, symbol=enrichmentTable_other$symbol,
+                            symbols=c("x","circle"))
 
         p<-plotly::add_markers(p,x=enrichmentTable_highlighted$Arg.ES, y=enrichmentTable_highlighted$ES,type="scatter", mode="markers",
-                               text=paste0(enrichmentTable_highlighted$Accession,": ",enrichmentTable_highlighted$TF,
+                                text=paste0(enrichmentTable_highlighted$Accession,": ",enrichmentTable_highlighted$TF,
                                            '<br>Pval: ',round(enrichmentTable_highlighted$pval.ES,3),
                                            '<br>Treatment: ',enrichmentTable_highlighted$Treatment,
                                            '<br>Cell: ',enrichmentTable_highlighted$Cell),
-                               color=enrichmentTable_highlighted$highlight, colors=markerColors,symbol=enrichmentTable_highlighted$symbol,
-                               symbols=c("x","circle"))%>%
+                                color=enrichmentTable_highlighted$highlight, colors=markerColors,symbol=enrichmentTable_highlighted$symbol,
+                                symbols=c("x","circle"))%>%
             plotly::layout(title=plot_title,
-                           xaxis = list(title = "Argument"),
-                           yaxis = list (title = "ES"))
+                            xaxis = list(title = "Argument"),
+                            yaxis = list (title = "ES"))
     }else if (length(markerColors)==1){
         p<-plotly::plot_ly(enrichmentTable, x=enrichmentTable$Arg.ES,y=enrichmentTable$ES, type="scatter", mode="markers",
-                           text=paste0(enrichmentTable$Accession,": ",enrichmentTable$TF,
+                            text=paste0(enrichmentTable$Accession,": ",enrichmentTable$TF,
                                        '<br>Pval: ',round(enrichmentTable$pval.ES,3),
                                        '<br>Treatment: ',enrichmentTable$Treatment,
                                        '<br>Cell: ',enrichmentTable$Cell),
-                           color=enrichmentTable$highlight, colors=markerColors, symbol=enrichmentTable$symbol,
-                           symbols=c("x","circle"))
+                            color=enrichmentTable$highlight, colors=markerColors, symbol=enrichmentTable$symbol,
+                            symbols=c("x","circle"))
     }
     LFC.bar<-get_LFC_bar(LFC)
 
@@ -851,7 +851,7 @@ plot_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.sty
 
     if(!requireNamespace("plotly", quietly = TRUE)){
         stop("plotly package needed for this function to work. Please install it.",
-             call. = FALSE)
+            call. = FALSE)
     }
     requireNamespace("utils")
     requireNamespace("dplyr")
@@ -922,20 +922,20 @@ plot_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.sty
                                            text=paste0(tabla$Accession[i]," - ",tabla$TF[i],'<br>Cell: ',tabla$Cell[i],
                                                        ' <br>Treatment: ',tabla$Treatment[i]))%>%
                     plotly::layout(title=plot_title,
-                                   xaxis = list(title = "Argument"),
-                                   yaxis = list (title = "ES"))
+                                    xaxis = list(title = "Argument"),
+                                    yaxis = list (title = "ES"))
             }
         }
     }else{
         grafica<-plotly::plot_ly(tabla,x=c(1:length(tabla$RES[[1]])),
-                                 y=tabla$RES[[Accession[1]]],
-                                 type="scatter", mode="lines", line=list(color=line.colors[1],dash=line.styles[1]),
-                                 name=paste0(tabla$Accession[1]," - ",tabla$TF[1]),
-                                 text=paste0(tabla$Accession[i]," - ",tabla$TF[i],'<br>Cell: ',tabla$Cell[i],
+                                y=tabla$RES[[Accession[1]]],
+                                type="scatter", mode="lines", line=list(color=line.colors[1],dash=line.styles[1]),
+                                name=paste0(tabla$Accession[1]," - ",tabla$TF[1]),
+                                text=paste0(tabla$Accession[i]," - ",tabla$TF[i],'<br>Cell: ',tabla$Cell[i],
                                              ' <br>Treatment: ',tabla$Treatment[i]))%>%
             plotly::layout(title=plot_title,
-                           xaxis = list(title = "Argument"),
-                           yaxis = list (title = "ES"))
+                            xaxis = list(title = "Argument"),
+                            yaxis = list (title = "ES"))
     }
     LFC.bar<-get_LFC_bar(LFC)
 
@@ -988,11 +988,11 @@ get_LFC_bar<-function(LFC){
 
     if(!requireNamespace("scales", quietly = TRUE)){
         stop("scales package needed for this function to work. Please install it.",
-             call. = FALSE)
+            call. = FALSE)
     }
     if(!requireNamespace("plotly", quietly = TRUE)){
         stop("plotly package needed for this function to work. Please install it.",
-             call. = FALSE)
+            call. = FALSE)
     }
     requireNamespace("grDevices")
     requireNamespace("dplyr")
@@ -1008,7 +1008,7 @@ get_LFC_bar<-function(LFC){
     colz <-data.frame(vals[o], cols[o])
 
     LFC.bar<-plotly::plot_ly(x=c(1:length(LFC)), y=rep(1,length(LFC)),
-                             z = LFC, type = "heatmap",colorscale=colz,showscale = FALSE)%>%
+                                z = LFC, type = "heatmap",colorscale=colz,showscale = FALSE)%>%
         plotly::layout(yaxis=list(visible=FALSE))
 
     return(LFC.bar)
