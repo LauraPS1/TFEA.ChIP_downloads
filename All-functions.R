@@ -289,7 +289,7 @@ GeneID2entrez<-function(gene.IDs,return.Matrix = FALSE){
 get_chip_index<-function(database = "g",TFfilter = NULL){
 
     #' @title Creates a data frame containing accession IDs of ChIP-Seq experiments and TF tested
-    #' @description Function to create a data frame containing accession IDs of ChIP-Seq experiments and
+    #' @description Function to create a data frame containing the ChIP-Seq dataset accession IDs and
     #' the transcription factor tested in each ChIP. This index is required for functions
     #' like “contingency_matrix” and “GSEA_run” and can also be used as a filter to select
     #' specific ChIPs or transcription factors to run an analysis.
@@ -327,8 +327,8 @@ get_chip_index<-function(database = "g",TFfilter = NULL){
 contingency_matrix<-function(test_list,control_list,chip_index=get_chip_index()){
 
     #' @title Computes 2x2 contingency matrices
-    #' @description Function to compute contingency 2x2 matrix based on the matches between two gene ID lists
-    #' and a ChIP-Seq binding database.
+    #' @description Function to compute contingency 2x2 matrix by the partition of the two gene ID lists
+    #' according to the presence or absence of the terms in these list in a ChIP-Seq binding database.
     #' @param test_list List of gene Entrez IDs
     #' @param control_list If not provided, all human genes not present in test_list will be used as control.
     #' @param chip_index Output of the function “get_chip_index”, a data frame containing
@@ -383,9 +383,10 @@ contingency_matrix<-function(test_list,control_list,chip_index=get_chip_index())
 getCMstats<-function(contMatrix_list,chip_index=get_chip_index()){
 
     #' @title Generates a data frame with Accession, TF, OR and p-val from a contingency_matrix output
-    #' @description From a list of contingency matrices, such as the output from “contingency_matrix”, this function computes a fisher's exact test for each matrix and generates a data frame that stores
-    #' accession ID of a ChIP-Seq experiment, the TF tested in that experiment, and the p-value and the odds ratio resulting
-    #' from the test.
+    #' @description From a list of contingency matrices, such as the output from “contingency_matrix”, this function 
+    #' computes a fisher's exact test for each matrix and generates a data frame that stores
+    #' accession ID of a ChIP-Seq experiment, the TF tested in that experiment, the p-value and the odds ratio 
+    #' resulting from the test.
     #' @param contMatrix_list Output of “contingency_matrix”, a list of contingency matrix.
     #' @param chip_index Output of the function “get_chip_index”, a data frame containing
     #' accession IDs of ChIPs on the database and the TF each one tests. If not provided, the whole internal database will be used
@@ -524,8 +525,8 @@ GSEA_Shuffling<-function(gene.list,permutations){
 
 GSEA_run<-function(gene.list,chip_index=get_chip_index(),get.RES = FALSE,RES.filter = NULL){
 
-    #' @title Function to run a GSEA analysis with an ID database.
-    #' @description Function to run a GSEA analysis with an TF-gene binding database.
+    #' @title Function to run a GSEA analysis
+    #' @description Function to run a GSEA to analyze the distribution of TFBS across a sorted list of genes.
     #' @param gene.list List of Entrez IDs ordered by their fold change.
     #' @param chip_index Output of the function “get_chip_index”, a data frame containing
     #' accession IDs of ChIPs on the database and the TF each one tests. If not provided, the whole internal database will be used
@@ -619,7 +620,7 @@ GSEA_run<-function(gene.list,chip_index=get_chip_index(),get.RES = FALSE,RES.fil
 plot_CM<-function(CM.statMatrix,plot_title = NULL,specialTF = NULL,TF_colors = NULL){
 
     #' @title Makes an interactive html plot from an enrichment table.
-    #' @description Function to make an interactive html plot from a transcription
+    #' @description Function to generate an interactive html plot from a transcription
     #' factor enrichment table, output of the function "getPvalMat".
     #' @param CM.statMatrix Output of the function "getCMstats".
     #' A data frame storing: Accession ID of every ChIP-Seq tested, Transcription Factor,Odds Ratio, p-value and adjusted p-value.
