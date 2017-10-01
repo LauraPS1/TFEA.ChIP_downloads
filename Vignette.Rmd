@@ -10,17 +10,17 @@ vignette: >
 ---
 # Introduction
 The identification of the transcription factor (TF) responsible for the coregulation of an specific set of genes is a common problem in transcriptomics. In the most simple scenario, the comparison of the transcriptome of cells or organisms in two conditions leads to the identification of a set of differentially expressed (DE) genes and the underlying assumption is that one or a few TFs regulate the expression of those genes. 
-Traditionally, the identification of the relevant TFs has relied on the use of position weight matrices (PWMs) to predict transcription factor binding sites (TFBSs) proximal to the DE genes (Wasserman and Sandelin, 2004). The comparison of predicted TFBS in DE versus control genes reveals factors that are significantly enriched in the DE gene set. The prediction of TFBS using these approaches have been useful to narrow down potential binding sites, but can suffer from high rates of false positives. In addition, this approach is limited by design to sequence-specific transcription factors (TF) and thus unable to identify cofactors that bind indirectly to target genes. 
+Traditionally, the identification of the relevant TFs has relied on the use of position weight matrices (PWMs) to predict transcription factor binding sites (TFBSs) proximal to the DE genes (Wasserman and Sandelin, 2004). The comparison of predicted TFBS in DE versus control genes reveals factors that are significantly enriched in the DE gene set. These approaches have been useful to narrow down potential binding sites, but can suffer from high rates of false positives. In addition, this strategy is limited by design to sequence-specific transcription factors (TF) and thus unable to identify cofactors that bind indirectly to target genes. 
 To overcome these limitations, TFEA.ChIP exploits the vast amount of publicly available ChIP-seq datasets to determine TFBS proximal to a given set of genes and computes enrichment analysis based on this experimentally-derived rich information. Specifically TFEA.ChIP, uses information derived from the hundreds of ChIP-seq experiments from the ENCODE Consortium ^[ENCODE Project Consortium (2012) Nature 489, 57-74)] expanded to include additional datasets contributed to GEO database^[Edgar, R et al. (2002) Nucleic Acids Res. 30:207-10] ^[Barrett, T et al. (2013) Nucleic Acids Res. 41(Database issue):D991-5] by individual laboratories representing the binding sites of factors not assayed by ENCODE. 
 The package includes a set of tools to customize the ChIP data, perform enrichment analysis and visualize the results. The package implements two enrichment analysis methods:
 
 - Analysis of the association of TFBS and differential expression from 2x2 tables recording the presence of binding sites for a given TF in DE and control genes. The statistical significance of the association for each factor determined by a Fisher's exact test.
-- GSEA analysis, based on the core function of the GSEA algorithm for R^[Subramanian, Tamayo, et al. (2005) PNAS 102, 15545-15550] ^[Mootha, Lindgren, et al. (2003) Nat Genet 34, 267-273], GSEA.EnrichmentScore
+- GSEA analysis, based on the core function of the GSEA algorithm developed by the GSEA team at the Broad Institute of MIT and Harvard^[Subramanian, Tamayo, et al. (2005) PNAS 102, 15545-15550] ^[Mootha, Lindgren, et al. (2003) Nat Genet 34, 267-273]
 
 
 # Analysis Example
 
-TFEA.ChIP is designed to take the output of a differential expression analysis and identify TFBS enriched in the list of DE genes. In the case of the analysis of association, the only required input is a set of DE genes and, optionally, a set of control genes whose expression is not altered by the experimental conditions under study. For the GSEA analysis a ranked list of genes is required. This is supplied as a matrix or dataframe containing a column with gene names and a numerical column with the ranking metric which typically are log-fold change or p-values for the gene expression changes in the two conditions under evaluation. 
+TFEA.ChIP is designed to take the output of a differential expression analysis and identify TFBS enriched in the list of DE genes. In the case of the analysis of association, the only required input is a set of DE genes and, optionally, a set of control genes whose expression is not altered by the experimental conditions under study. For the GSEA analysis a ranked list of genes is required. This is supplied as a dataframe containing a column with gene names and a numerical column with the ranking metric, which typically are log-fold change or p-values for the gene expression changes in the two conditions under evaluation. 
 For illustration purposes we will derive the input required for both analysis from a table containing the following field columns:
 
 - Gene name (*Gene*). Internally the package uses Entrez IDs, but translating from Gene Symbols and ENSEMBL IDs is available.
@@ -29,7 +29,7 @@ For illustration purposes we will derive the input required for both analysis fr
 
 The output of popular packages, such as DESeq2, for detection of differentially expressed genes from the analysis of count data from RNA-seq experiments produce tables with this information.
 
-The *hypoxia* dataset is the output of a differential expression analysis performed with DESeq2 on the an RNAseq experiment analyzing the response to hypoxia of endothelial cells^[Tiana, M et al. The SIN3A histone deacetylase complex is required for a complete transcriptional response to hypoxia. https://doi.org/10.1101/182691 ] deposited at the NCBI's GEO repository (GSE89831). To load this data set copy and paste the following lines into your R interpreter:
+The *hypoxia* dataset is the output of a differential expression analysis performed with DESeq2 on an RNAseq experiment analyzing the response to hypoxia of endothelial cells^[Tiana, M et al. The SIN3A histone deacetylase complex is required for a complete transcriptional response to hypoxia. https://doi.org/10.1101/182691 ] deposited at the NCBI's GEO repository (GSE89831). To load this data set copy and paste the following lines into your R interpreter:
 
 ```{r eval=TRUE,echo=TRUE}
 data("hypoxia",package = "TFEA.ChIP")  #load hypoxia dataset
@@ -46,9 +46,9 @@ Genes.Upreg <- hypoxia[which(hypoxia$log2FoldChange > 1 & hypoxia$padj <= 0.05),
 Genes.Control <- hypoxia[which(abs(hypoxia$log2FoldChange) < 0.25 & hypoxia$padj > 0.5),"Gene"]   #extract vector with names of non-responsive genes
 ```
 
-2. Translate the gene IDs to Entrez Gene IDs.
+2. Translate the gene IDs to Entrez Gene IDs
 
-Note that, in this particular case, genes are represented using their hgnc symbol. However, internally TFEA.ChIP works with ENTREZ gene IDs, thus other types of gene IDs must be translated into the corresponding ENTREZ IDs. To that we use the *GeneID2entrez* function:
+Note that, in this particular case, genes are represented using their HGNC symbol. However, internally TFEA.ChIP works with ENTREZ gene IDs, thus other types of gene IDs must be translated into the corresponding ENTREZ IDs. To that end we use the *GeneID2entrez* function:
 ```{r eval=TRUE,echo=TRUE,message=FALSE}
 library(TFEA.ChIP)
 #Conversion of hgnc to ENTREZ IDs
@@ -56,8 +56,9 @@ Genes.Upreg <- GeneID2entrez(Genes.Upreg)
 Genes.Control <- GeneID2entrez(Genes.Control)
 ```
 
-3.  Association analysis.
-In this step, we will construct a contingency table for each of the factors stored in the internal database categorizing the DE and control genes according to the presence or absence of binding sites:
+3.  Association analysis
+
+In this step, we will construct a contingency table for each of the factors stored in the internal database categorizing the DE (DE_yes) and control (DE_no) genes according to the presence or absence of binding sites:
 
 
 |      |TFbound_yes|TFbound_no|
@@ -65,7 +66,7 @@ In this step, we will construct a contingency table for each of the factors stor
 |DE_yes|number y/y |number y/n|
 |DE_no |number n/y |number n/n|
 
-Then, we will apply Fisher's exact test to each contingency table to test the null hypothesis that factor binding and differential expression are independent.
+Then, we will apply Fisher's exact test to each contingency table to test the null hypothesis that factor binding and differential expression are independent. In addition, to the raw p-values the function also return the FDR-adjusted values to correct for multiple testing.
 
 ```{r eval=TRUE,echo=TRUE}
 CM_list_UP <- contingency_matrix(Genes.Upreg,Genes.Control) #generates list of contingency tables, one per dataset
@@ -73,7 +74,8 @@ pval_mat_UP <- getCMstats(CM_list_UP) #generates list of p-values and OR from as
 head(pval_mat_UP)
 ```
 
-In this example, all 1129 datasets in the internal database were analyzed. However, we can restrict the analysis to a specific subset of the database and/or a given set of transcription factors. To this end we can produce and index of the tables of interest with the function *get_chip_index* and pass this index as an additional argument to *contingency_matrix*. In addition, note that the list of control genes is optional. If not supplied, all human genes not present in the test list will be used as control. Thus, we could restrict the analysis to the datasets generated by the ENCODE project and use all non-DE genes as control:
+In this example, all 1129 datasets in the internal database were analyzed. However, we can restrict the analysis to a specific subset of the database and/or a given set of transcription factors. To this end we can produce and index of the tables of interest with the function *get_chip_index* and pass this index as an additional argument to *contingency_matrix*. 
+Finally, note that the list of control genes is optional. If not supplied, all human genes not present in the test list will be used as control. Thus, we could restrict the analysis to the datasets generated by the ENCODE project and use all non-DE genes as control:
 
 
 ```{r eval=TRUE,echo=TRUE}
@@ -84,6 +86,7 @@ head(pval_mat_UPe)
 ```
 
 4. Plot results
+
 The table of results generated by *getCMstats* can be parsed to select candidate TF. The function *plot_CM* uses the package *plotly* to generate an interactive plot representing the p-value against the odd-ratio that is very helpful to explore the results.
 
 ```{r eval=FALSE,echo=TRUE}
@@ -107,8 +110,7 @@ if("ggplot2" %in% rownames(installed.packages()) == TRUE){
         ggplot2::theme(legend.position="none")
 }
 ```
-In fact, the exploration of this graph shows a strong enrichment for several HIF datasets, as expected.
-This can be clearly shown by highlighting the datasets of interest:
+In fact, the exploration of this graph shows a strong enrichment for several HIF datasets, as expected for the *hypoxia* dataset. This can be clearly shown by highlighting the datasets of interest:
 
 
 ```{r eval=FALSE,echo=TRUE}
@@ -140,8 +142,8 @@ if("ggplot2" %in% rownames(installed.packages()) == TRUE){
 ## Gene Set Enrichment Analysis.
     
 1. Generate a sorted list of ENTREZ IDs
-The GSEA analysis implemented in the TFEA.ChIP package  requires as input a sorted list of genes. In addition, as indicated before, internally TFEA.ChIP works with ENTREZ gene IDs, thus other types of gene IDs must be translated into the corresponding ENTREZ IDs. In this example, we will sort genes according to log fold change in descending order. However, they could be sorted by any numerical parameter including p-value.
-If your dataset contains genes with a log(Fold Change) of Inf or -Inf, we recommend to filter those that do not haver a significant p-value out of the list.
+
+The GSEA analysis implemented in the TFEA.ChIP package  requires as input a sorted list of genes. In this example, we will sort genes according to log fold change in descending order. However, they could be sorted by any numerical parameter including p-value. If your dataset contains genes with a log(Fold Change) of Inf or -Inf, we recommend to filter those that do not haver a significant p-value out of the list. In addition, as indicated before, internally TFEA.ChIP works with ENTREZ gene IDs, thus other types of gene IDs must be translated into the corresponding ENTREZ IDs.
 
 ```{r eval=TRUE,echo=TRUE,message=FALSE}
 genes <- GeneID2entrez(hypoxia$Gene,return.Matrix = T) #Conversion of hgnc to ENTREZ IDs
@@ -151,14 +153,16 @@ hypoxia.sorted<-hypoxia.sorted[!is.na(hypoxia.sorted$ENTREZ.ID),] #removes entri
 ```
 
 2. Select the datasets to analyze
-By default, the analysis will include all the ChIP-Seq experiments available in the database. However, this analysis might take several minutes to run. To restrict the analysis to a subset of the database we can generate an index variable and pass it to the function *GSEA_run*. This will limit the analysis to the ChIP-Seq experiments of the user's choosing. This index variable can be generated using the function *get_chip_index*, that allows to choose between the whole database or Encode-only ChIP-Seq experiments, and also to select a specific subset of transcription factors.
+
+By default, the analysis will include all the ChIP-Seq experiments available in the database. However, this analysis might take several minutes to run. To restrict the analysis to a subset of the database we can generate an index variable and pass it to the function *GSEA_run*. This will limit the analysis to the ChIP-Seq datasets of the user's choosing. This index variable can be generated using the function *get_chip_index* and allows the user to select the whole database, the set of ChIP-Seq experiments produced by the ENCODE project ("encode") or a specific subset of transcription factors (as a vector containing the TF names).
 
 ```{r eval=TRUE,echo=TRUE}
 chip_index<-get_chip_index(TFfilter = c("HIF1A","EPAS1","ARNT")) #restrict the analysis to datasets assaying these factors
 ```
 
-3. Run the analysis with the function *GSEA_run*. 
-The function will perform a GSEA-based analysis on the input gene list. This function is based on the R-GSEA R script bundle written by the GSEA team at the Broad Institute of MIT and Harvard ^[Subramanian, Tamayo, et al. (2005) PNAS 102, 15545-15550] ^[Mootha, Lindgren, et al. (2003) Nat Genet 34, 267-273]. The output of the analysis depends on the variable *get.RES*: 
+3. Run the GSEA analysis
+
+The function *GSEA_run* will perform a GSEA-based analysis on the input gene list. This function is based on the R-GSEA R script bundle written by the GSEA team at the Broad Institute of MIT and Harvard ^[Subramanian, Tamayo, et al. (2005) PNAS 102, 15545-15550] ^[Mootha, Lindgren, et al. (2003) Nat Genet 34, 267-273]. The output of the analysis depends on the variable *get.RES*: 
 * When **False**, the function returns a data frame storing maximum Enrichment Score and associated p-value determined for each dataset included in the analysis.
 * When **True**, the function returns a list of three elements. The first element (*Enrichment.table*) is the enrichment data frame previously mentioned. The second element (*RES*) is a list of vectors containing the *Running Enrichment Scores* values (see GSEA documentation, http://software.broadinstitute.org/gsea/doc/GSEAUserGuideTEXT.htm#_Interpreting_GSEA_Results) for each to the sorted genes tested against each one of the analyzed ChIP datasets. The third element (*indicators*) is a list of vectors indicating if the sorted genes were bound by the factor analyzed in each ChIP dataset. 
 
@@ -171,10 +175,12 @@ head(GSEA.result$indicators$GSM2390642)
 
 The list of results can be restricted to a given set of transcription factors by setting the variable *RES.filter*.
 
-4. Plotting the results.
+4. Plotting the results
+
 TFEA.ChIP includes two functions that use the package *plotly* to generate interactive html plots of your GSEA results: *plot_ES* and *plot_RES*.
 
-  i) Plot Enrichment Scores with *plot_ES*. 
+  i) Plot Enrichment Scores with *plot_ES*
+  
   We can choose to highlight ChIP-Seq from specific transcription factors plotting them in a particular color.
 
 ```{r eval=FALSE,echo=TRUE}
