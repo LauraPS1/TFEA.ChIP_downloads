@@ -271,11 +271,11 @@ Set a *for* loop to convert all your files to GenomicRanges objects using *txt2G
 gr.list<-list()
 for (i in 1:length(File.list)){
     
-    tmp<-read.table(file=paste0(folder,"/",File.list[i]), ...)
+    tmp<-read.table(..., stringsAsFactors = FALSE)
                     
-    for (j in 1:length(MetaData$Name)){
-        if (File.list[i]==MetaData$Name[j]){
-            file.metadata<-MetaData[j,]
+    for (j in 1:length(myMetaData$Name)){     # Select the metadata corresponding to each dataset.
+        if (File.list[i]==myMetaData$Name[j]){
+            file.metadata<-myMetaData[j,]
             break
         }
     }
@@ -336,7 +336,7 @@ TF.gene.binding.db<-GR2tfbs_db(DHS.database,gr.list) # gr.list is a list of outp
 txdb<-TxDb.Hsapiens.UCSC.hg19.knownGene
 gen.list<-genes(txdb)$gene_id # selecting all the genes in knownGene
 
-myTFBSmatrix<-makeTFBSmatrix(gen,TF.gene.binding.db)
+myTFBSmatrix<-makeTFBSmatrix(gen.list,TF.gene.binding.db)
 
 ```
 
