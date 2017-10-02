@@ -269,9 +269,9 @@ format<-"macs"
 gr.list<-list()
 for (i in 1:length(File.list)){
     
-    tmp<-read.table(file=paste0(folder,"/",File.list[i]), ...)
+    tmp<-read.table(...)
                     
-    for (j in 1:length(MetaData$Name)){
+    for (j in 1:length(MetaData$Name)){     # Select the metadata corresponding to each dataset.
         if (File.list[i]==MetaData$Name[j]){
             file.metadata<-MetaData[j,]
             break
