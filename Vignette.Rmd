@@ -248,9 +248,7 @@ if("ggplot2" %in% rownames(installed.packages()) == TRUE & "tydyr" %in% rownames
 
 If the user wants to generate their own database of ChIPseq datasets, the functions *txt2gr* and *GR2tfbs_db* automate most of the process. The required inputs are:
 
-- A Metadata table (storing at least, Accession ID, name of the file, and TF tested in the ChIP-Seq experiment). 
-
-The metadata table included with this package has the following fields: "Name", "Accession", "Cell", "Cell Type", "Treatment", "Antibody", and "TF".
+- A Metadata table (storing at least, Accession ID, name of the file, and TF tested in the ChIP-Seq experiment). The metadata table included with this package has the following fields: "Name", "Accession", "Cell", "Cell Type", "Treatment", "Antibody", and "TF".
 
 - A folder containing ChIP-Seq peak data, either in ".narrowpeak" format or the MACS output files "_peaks.bed" -a format that stores "chr", "start", "end", "name", and "Q-value" of every peak-.
 
@@ -287,7 +285,7 @@ for (i in 1:length(File.list)){
 
 2. [Optional] Dnase Hypersensitive Sites
 
-To filter the peaks of the diferent experiments we use a database of Dnase Hypersensitive Sites. Specifically, the ChIPseq peaks in each dataset are filtered to select those overlapping or near to (by default max. distance 10 nucleotides) DNase HS regions located within 1Kb of genes. 
+By default (see step 3), TFEA.ChIP filters the ChIPseq peaks in each dataset to select those overlapping or near to (by default max. distance 10 nucleotides) DNase HS regions located within 1Kb of genes. 
 The database of gene-associated DHSs is generated from Encode's Master DNaseI HS as follows:
 
   i) Load Encode's Master DNaseI HS and convert it to a Genomic Ranges object.
@@ -324,15 +322,16 @@ for (i in 1:length(dnase.sites.list)){
 }
 ```
 
-This code should only be executed to generate a new GRanges object containing DNAse HS sites
+These steps can be modified to generate a new GRanges object containing custom DNAse HS sites.
 
-5. Assign TFBS peaks from ChIP dataset to specific genes
+3. Assign TFBS peaks from ChIP dataset to specific genes
 
 The function *GR2tfbs_db* assigns the TFBS peaks in the ChIP datasets stored in *gr.list* to a gene. To this end, a ChIP peak overlaping a Dnase HS region receive the gene label associated to that region. By default the function also assigns the gene name when the ChIP peak does not overlap a Dnase region but maps at less than 10 nucleotides from it. This behaviour can be modified by setting the argument *distanceMargin* to the desired value (by default distanceMargin=10).
 
 ```{r eval=FALSE,echo=TRUE}
 TF.gene.binding.db<-GR2tfbs_db(DHS.database,gr.list) # gr.list is a list of outputs from the funcion "txt2GR"
 ```
+
 The function, accepts any Genomic Range object that includes a metacolumn with a gene id (gene_id) for each genomic segment. For example, asignation of peaks to genes can be done by providing a list of all the genes in the genome:
 
 ```{r eval=FALSE,echo=TRUE}
@@ -341,9 +340,12 @@ txdb<-TxDb.Hsapiens.UCSC.hg19.knownGene
 Genes<-genes(txdb)
 TF.gene.binding.db<-GR2tfbs_db(Genes,gr.list) # gr.list is a list of outputs from the funcion "txt2GR"
 ```
+
 In this case the information about Dnase hypersensitivity is disregarded and peaks are asigned to overlapping genes (or genes closer than *distanceMargin* residues).
 
-6. Generate a binary matrix to use with the rest of TFEA.ChIP using *makeTFBSmatrix*. This matrix and the metadata table are the files you will need to run TFEA.ChIP with your own data.
+4. Generation of the TFBS database.
+
+The function *makeTFBSmatrix* generates a binary matrix with a row for each human gene and a column for each independent ChIPseq dataset. The cell of the matrix contain a value of 1 if the gene is bound by the TF and 0 otherwise. This matrix and the metadata table can be used instead of the default TFBS database.
 
 ```{r eval=FALSE,echo=TRUE}
 
@@ -354,7 +356,9 @@ myTFBSmatrix<-makeTFBSmatrix(gen.list,TF.gene.binding.db)
 
 ```
 
-7. At the beginning of a session, use the function *set_user_data* to use your TFBS binary matrix and metadata table with the rest of the package.
+5. Sustitute the default database by a custom generated table.
+
+At the beginning of a session, use the function *set_user_data* to use your TFBS binary matrix and metadata table with the rest of the package.
 
 ```{r eval=FALSE,echo=TRUE}
 set_user_data(binary_matrix = myTFBSmatrix, metadada = myMetaData)
