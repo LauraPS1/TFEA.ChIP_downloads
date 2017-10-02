@@ -332,7 +332,7 @@ TF.gene.binding.db<-GR2tfbs_db(DHS.database,gr.list) # gr.list is a list of outp
 txdb<-TxDb.Hsapiens.UCSC.hg19.knownGene
 gen.list<-genes(txdb)$gene_id # selecting all the genes in knownGene
 
-myTFBSmatrix<-makeTFBSmatrix(gen,TF.gene.binding.db)
+myTFBSmatrix<-makeTFBSmatrix(gen.list,TF.gene.binding.db)
 
 ```
 
