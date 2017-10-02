@@ -11,7 +11,7 @@
 #' @import org.Hs.eg.db
 ################### FUNCTIONS ####
 
-txt2GR<-function(fileTable,format,fileMetaData){
+txt2GR<-function(fileTable,format,fileMetaData,alpha=NULL){
 
     #' @title Function to filter a ChIP-Seq input.
     #' @description Function to filter a ChIP-Seq output (in .narrowpeak or MACS's peaks.bed formats) and
@@ -21,6 +21,8 @@ txt2GR<-function(fileTable,format,fileMetaData){
     #' narrowPeak fields:'chrom','chromStart','chromEnd','name','score','strand','signalValue','pValue','qValue','peak'
     #' macs fields: 'chrom','chromStart','chromEnd','name','qValue'
     #' @param fileMetaData Data frame/matrix/array contaning the following fields: 'Name','Accession','Cell','Cell Type','Treatment','Antibody','TF'.
+    #' @param alpha max p-value to consider ChIPseq peaks as significant and include them in the database. 
+    #' By default alpha is 0.05 for narrow peak files and 1e-05 for MACS files
     #' @return The function returns a GR object generated from the ChIP-Seq dataset input.
     #' @export txt2GR
     #' @examples
@@ -57,7 +59,7 @@ txt2GR<-function(fileTable,format,fileMetaData){
     format<-tolower(format)
 
     if(format=="narrowpeak"){
-
+      
         if(fileTable[1,8]==-1 & fileTable[1,9]==-1){
             warning ("The ChIP-Seq input file ",fileMetaData$Name," does not include p-value or Q-value for each peak. Please, make sure the peaks in the input file have been previously filtered according to their significance")
             fileTable<-dplyr::select(fileTable,V1,V2,V3)
@@ -68,13 +70,13 @@ txt2GR<-function(fileTable,format,fileMetaData){
             fileTable<-dplyr::select(fileTable,V1,V2,V3,V9)
             colnames(fileTable)<-c("chr","start","end","score")
             Stat<-"log10(p-Value)"
-            valLimit<-1.3
+            if(is.null(alpha)){valLimit<-1.3}else{valLimit<-(-log10(alpha))}
             fileTable<-fileTable[fileTable$score>valLimit,]
         }else if(fileTable[1,9]==-1){
             fileTable<-dplyr::select(fileTable,V1,V2,V3,V8)
             colnames(fileTable)<-c("chr","start","end","score")
             Stat<-"p-Value"
-            valLimit<-0.05
+            if(is.null(alpha)){valLimit<-0.05}else{valLimit<-alpha}
             fileTable<-fileTable[fileTable$score<valLimit,]
         }
 
@@ -92,11 +94,11 @@ txt2GR<-function(fileTable,format,fileMetaData){
         return(gr)
 
     }else if(format=="macs"){
-
+        if(is.null(alpha)){valLimit<-50}else{valLimit<-(-10*log10(alpha))}
         if(length(fileTable[1,])==5){
             fileTable<-dplyr::select(fileTable,V1,V2,V3,V5)
             colnames(fileTable)<-c("chr","start","end","score")
-            fileTable<-fileTable[fileTable$score>50,]
+            fileTable<-fileTable[fileTable$score>valLimit,]
             Stat<-"-10*log.Pvalue"
         }else if (length(fileTable[1,])==4 & is.character(fileTable[1,4])){ # if the 4th column consists of peak names
             warning ("The ChIP-Seq input file does not include p-value or Q-value for each peak. Please, make sure the peaks in the input file have been previously filtered according to their significance")
@@ -106,7 +108,7 @@ txt2GR<-function(fileTable,format,fileMetaData){
             colnames(fileTable)[1:3]<-c("chr","start","end")
         }else if (length(fileTable[1,])==4 & !is.character(fileTable[1,4])){ # if the 4th column consists of adjusted p-values
             colnames(fileTable)<-c("chr","start","end","score")
-            fileTable<-fileTable[fileTable$score>50,]
+            fileTable<-fileTable[fileTable$score>valLimit,]
             Stat<-"-10*log.Pvalue"
         }
 
