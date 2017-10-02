@@ -246,7 +246,7 @@ if("ggplot2" %in% rownames(installed.packages()) == TRUE & "tydyr" %in% rownames
 
 # Building a TF-gene binding database
 
-If the user wants to generate their own database, the functions *txt2gr* and *GR2tfbs_db* automate most of the process. The starting data required is:
+If the user wants to generate their own database of ChIPseq datasets, the functions *txt2gr* and *GR2tfbs_db* automate most of the process. The required inputs are:
 
 - A Metadata table (storing at least, Accession ID, name of the file, and TF tested in the ChIP-Seq experiment). 
 
@@ -255,7 +255,9 @@ The metadata table included with this package has the following fields: "Name", 
 - A folder containing ChIP-Seq peak data, either in ".narrowpeak" format or the MACS output files "_peaks.bed" -a format that stores "chr", "start", "end", "name", and "Q-value" of every peak-.
 
 
-1. Specify the folder where the ChIP-Seq files are stored, create an array with the names of the ChIP-Seq files, and choose a format.
+1. Filter peaks from source and store them as a GRanges object
+
+Specify the folder where the ChIP-Seq files are stored, create an array with the names of the ChIP-Seq files, and choose a format.
 
 ```{r eval=FALSE,echo=TRUE}
 folder<-"~/peak.files.folder"
@@ -263,7 +265,7 @@ File.list<-dir(folder)
 format<-"macs"
 ```
 
-2. Set a *for* loop to convert all your files to GenomicRanges objects using *txt2GR*.
+Set a *for* loop to convert all your files to GenomicRanges objects using *txt2GR*. Please note that, by default, only peaks with an associated p-value of 0.05 (for narrow peaks files) or 1e-5 (for MACS files) will be kept. The user can modify the default values by setting the alpha argument to the desired threshold p-value.
 
 ```{r eval=FALSE,echo=TRUE}
 gr.list<-list()
@@ -278,14 +280,16 @@ for (i in 1:length(File.list)){
         }
     }
     
-    ChIP.dataset.gr<-txt2GR(tmp, format, GR.folder, file.metadata)
+    ChIP.dataset.gr<-txt2GR(tmp, format, file.metadata)
     gr.list<-c(gr.list,list(ChIP.dataset.gr))
 }
 ```
 
-3. [Optional] To filter the peaks of the diferent experiments we use a database of Dnase Hypersensitive Sites. This database is generated from Encode's Master DNaseI HS as follows:
+2. [Optional] Remove peaks that 
 
-  iii.1) Load Encode's Master DNaseI HS and convert it to a Genomic Ranges object.
+To filter the peaks of the diferent experiments we use a database of Dnase Hypersensitive Sites. This database is generated from Encode's Master DNaseI HS as follows:
+
+  i) Load Encode's Master DNaseI HS and convert it to a Genomic Ranges object.
     
 ```{r eval=FALSE,echo=TRUE}
 dnaseClusters<-read.table(file="~/path.to.file.txt", 
@@ -297,7 +301,7 @@ dnaseClusters<-makeGRangesFromDataFrame(dnaseClusters,
                          end.field="chromEnd")
 ```
 
-  iii.2) Select the Dnase hypersensitive sites that are 1Kb or closer to a gene and assign a gene ID yo every Dnase HS that remains.
+  iii.2) Select the Dnase hypersensitive sites that are 1Kb or closer to a gene and assign a gene ID to every Dnase HS that remains.
 
 ```{r eval=FALSE,echo=TRUE}
 txdb<-TxDb.Hsapiens.UCSC.hg19.knownGene
