@@ -130,13 +130,15 @@ txt2GR<-function(fileTable,format,fileMetaData){
     }
 }
 
-GR2tfbs_db<-function(Dnase.db,gr.list){
+GR2tfbs_db<-function(Dnase.db,gr.list,distanceMargin=10){
 
     #' @title Makes a TF-gene binding database
     #' @description GR2tfbs_db generates a TF-gene binding database from ChIP-Seq peak coordinates
     #' in GenomicRange objects.
     #' @param Dnase.db GenomicRanges object containing a database of Dnase hipersensitive sites
     #' @param gr.list List of GR objects containing ChIP-seq peak coordinates (output of txt2GR).
+    #' @param distanceMargin Maximum distance allowed between a gene or DHS to assign
+    #' a gene to a ChIP-seq peak. Set to 10 bases by default.
     #' @return List of vectors, one for every ChIP-Seq, storing the IDs of the genes to which the TF bound in the ChIP-Seq.
     #' @export GR2tfbs_db
     #' @examples
@@ -145,7 +147,7 @@ GR2tfbs_db<-function(Dnase.db,gr.list){
 
     if(!requireNamespace("S4Vectors", quietly = TRUE)){
         stop("S4Vectors package needed for this function to work. Please install it.",
-            call. = FALSE)
+             call. = FALSE)
     }
     requireNamespace("S4Vectors")
 
@@ -157,10 +159,10 @@ GR2tfbs_db<-function(Dnase.db,gr.list){
 
         nearest_index<-suppressWarnings(GenomicRanges::distanceToNearest(gr,Dnase.db,select="all"))
         nearest_index<-nearest_index[!is.na(nearest_index@elementMetadata@listData$distance)]
-        nearest_index<-nearest_index[nearest_index@elementMetadata@listData$distance<10]
+        nearest_index<-nearest_index[nearest_index@elementMetadata@listData$distance<distanceMargin]
         inSubject<-S4Vectors::subjectHits(nearest_index)
 
-        if(length(inSubject)==0){ # in case any ChIP-Seq dataset does not have any genes to assign.
+        if(length(inSubject)==0){ # in case any ChIP-Seq dataset does not have any genes to be assigned.
             m<-m+1
             next
         }
