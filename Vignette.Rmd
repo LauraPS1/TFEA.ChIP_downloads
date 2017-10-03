@@ -361,5 +361,5 @@ myTFBSmatrix<-makeTFBSmatrix(gen.list,TF.gene.binding.db)
 At the beginning of a session, use the function *set_user_data* to use your TFBS binary matrix and metadata table with the rest of the package.
 
 ```{r eval=FALSE,echo=TRUE}
-set_user_data(binary_matrix = myTFBSmatrix, metadada = myMetaData)
+set_user_data(binary_matrix = myTFBSmatrix, metadata = myMetaData)
 ```
