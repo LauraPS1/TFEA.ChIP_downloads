@@ -132,12 +132,13 @@ txt2GR<-function(fileTable,format,fileMetaData,alpha=NULL){
     }
 }
 
-GR2tfbs_db<-function(Dnase.db,gr.list,distanceMargin=10){
+GR2tfbs_db<-function(Ref.db,gr.list,distanceMargin=10){
 
-    #' @title Makes a TF-gene binding database
-    #' @description GR2tfbs_db generates a TF-gene binding database from ChIP-Seq peak coordinates
-    #' in GenomicRange objects.
-    #' @param Dnase.db GenomicRanges object containing a database of Dnase hipersensitive sites
+    #' @title Makes a TFBS-gene binding database
+    #' @description GR2tfbs_db generates a TFBS-gene binding database through the association of ChIP-Seq peak 
+    #' coordinates (provided as a GenomicRange object) to overlapping genes or gene-associated Dnase regions (Ref.db).
+    #' @param Ref.db GenomicRanges object containing a database of reference elements (either Genes or gene-associate Dnase regions)
+    #' including a gene_id metacolumn
     #' @param gr.list List of GR objects containing ChIP-seq peak coordinates (output of txt2GR).
     #' @param distanceMargin Maximum distance allowed between a gene or DHS to assign
     #' a gene to a ChIP-seq peak. Set to 10 bases by default.
@@ -159,7 +160,7 @@ GR2tfbs_db<-function(Dnase.db,gr.list,distanceMargin=10){
 
         gr<-gr.list[[i]]
 
-        nearest_index<-suppressWarnings(GenomicRanges::distanceToNearest(gr,Dnase.db,select="all"))
+        nearest_index<-suppressWarnings(GenomicRanges::distanceToNearest(gr,Ref.db,select="all"))
         nearest_index<-nearest_index[!is.na(nearest_index@elementMetadata@listData$distance)]
         nearest_index<-nearest_index[nearest_index@elementMetadata@listData$distance<distanceMargin]
         inSubject<-S4Vectors::subjectHits(nearest_index)
@@ -169,7 +170,7 @@ GR2tfbs_db<-function(Dnase.db,gr.list,distanceMargin=10){
             next
         }
 
-        assigned_genes<-Dnase.db[inSubject]$gene_id
+        assigned_genes<-Ref.db[inSubject]$gene_id
 
 
         if (i==1){
