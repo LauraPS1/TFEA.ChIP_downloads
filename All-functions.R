@@ -62,18 +62,18 @@ txt2GR<-function(fileTable,format,fileMetaData,alpha=NULL){
       
         if(fileTable[1,8]==-1 & fileTable[1,9]==-1){
             warning ("The ChIP-Seq input file ",fileMetaData$Name," does not include p-value or Q-value for each peak. Please, make sure the peaks in the input file have been previously filtered according to their significance")
-            fileTable<-dplyr::select(fileTable,V1,V2,V3)
+            fileTable<-fileTable[,1:3]
             Stat<-"no score"
             fileTable$score=rep(NA,length(fileTable[,1]))
             colnames(fileTable)[1:3]<-c("chr","start","end")
         }else if(fileTable[1,8]==-1){
-            fileTable<-dplyr::select(fileTable,V1,V2,V3,V9)
+            fileTable<-fileTable[,c(1,2,3,9)]
             colnames(fileTable)<-c("chr","start","end","score")
             Stat<-"log10(p-Value)"
             if(is.null(alpha)){valLimit<-1.3}else{valLimit<-(-log10(alpha))}
             fileTable<-fileTable[fileTable$score>valLimit,]
         }else if(fileTable[1,9]==-1){
-            fileTable<-dplyr::select(fileTable,V1,V2,V3,V8)
+            fileTable<-fileTable[,c(1,2,3,8)]
             colnames(fileTable)<-c("chr","start","end","score")
             Stat<-"p-Value"
             if(is.null(alpha)){valLimit<-0.05}else{valLimit<-alpha}
@@ -96,13 +96,13 @@ txt2GR<-function(fileTable,format,fileMetaData,alpha=NULL){
     }else if(format=="macs"){
         if(is.null(alpha)){valLimit<-50}else{valLimit<-(-10*log10(alpha))}
         if(length(fileTable[1,])==5){
-            fileTable<-dplyr::select(fileTable,V1,V2,V3,V5)
+            fileTable<-fileTable[,c(1,2,3,5)]
             colnames(fileTable)<-c("chr","start","end","score")
             fileTable<-fileTable[fileTable$score>valLimit,]
             Stat<-"-10*log.Pvalue"
         }else if (length(fileTable[1,])==4 & is.character(fileTable[1,4])){ # if the 4th column consists of peak names
             warning ("The ChIP-Seq input file does not include p-value or Q-value for each peak. Please, make sure the peaks in the input file have been previously filtered according to their significance")
-            fileTable<-dplyr::select(fileTable,V1,V2,V3)
+            fileTable<-fileTable[,1:3]
             Stat<-"no score"
             fileTable$score=rep(NA,length(fileTable[,1]))
             colnames(fileTable)[1:3]<-c("chr","start","end")
@@ -626,7 +626,7 @@ plot_CM<-function(CM.statMatrix,plot_title = NULL,specialTF = NULL,TF_colors = N
 
     #' @title Makes an interactive html plot from an enrichment table.
     #' @description Function to generate an interactive html plot from a transcription
-    #' factor enrichment table, output of the function "getPvalMat".
+    #' factor enrichment table, output of the function "getCMstats".
     #' @param CM.statMatrix Output of the function "getCMstats".
     #' A data frame storing: Accession ID of every ChIP-Seq tested, Transcription Factor,Odds Ratio, p-value and adjusted p-value.
     #' @param plot_title The title for the plot.
