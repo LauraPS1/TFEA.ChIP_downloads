@@ -146,8 +146,8 @@ if("ggplot2" %in% rownames(installed.packages()) == TRUE){
 The GSEA analysis implemented in the TFEA.ChIP package  requires as input a sorted list of genes. In this example, we will sort genes according to log fold change in descending order. However, they could be sorted by any numerical parameter including p-value. If your dataset contains genes with a log(Fold Change) of Inf or -Inf, we recommend to filter those that do not haver a significant p-value out of the list. In addition, as indicated before, internally TFEA.ChIP works with ENTREZ gene IDs, thus other types of gene IDs must be translated into the corresponding ENTREZ IDs.
 
 ```{r eval=TRUE,echo=TRUE,message=FALSE}
-genes <- GeneID2entrez(hypoxia$Gene,return.Matrix = T) #Conversion of hgnc to ENTREZ IDs
-hypoxia.sorted<-merge(hypoxia,genes,by.x=c("Gene"),by.y=c("GENE.ID"),all.x=T) #create new data table including ENTREZ ID
+genes <- GeneID2entrez(hypoxia$Gene,return.Matrix = TRUE) #Conversion of hgnc to ENTREZ IDs
+hypoxia.sorted<-merge(hypoxia,genes,by.x=c("Gene"),by.y=c("GENE.ID"),all.x=TRUE) #create new data table including ENTREZ ID
 hypoxia.sorted<-hypoxia.sorted[order(-hypoxia.sorted$log2FoldChange),] #sort genes according to fold induction
 hypoxia.sorted<-hypoxia.sorted[!is.na(hypoxia.sorted$ENTREZ.ID),] #removes entries not matching an ENTREZ ID
 ```
@@ -167,7 +167,7 @@ The function *GSEA_run* will perform a GSEA-based analysis on the input gene lis
 * When **True**, the function returns a list of three elements. The first element (*Enrichment.table*) is the enrichment data frame previously mentioned. The second element (*RES*) is a list of vectors containing the *Running Enrichment Scores* values (see GSEA documentation, http://software.broadinstitute.org/gsea/doc/GSEAUserGuideTEXT.htm#_Interpreting_GSEA_Results) for each to the sorted genes tested against each one of the analyzed ChIP datasets. The third element (*indicators*) is a list of vectors indicating if the sorted genes were bound by the factor analyzed in each ChIP dataset. 
 
 ```{r eval=TRUE,echo=TRUE}
-GSEA.result <- GSEA_run(hypoxia.sorted$ENTREZ.ID,chip_index,get.RES = T) #run GSEA analysis
+GSEA.result <- GSEA_run(hypoxia.sorted$ENTREZ.ID,chip_index,get.RES = TRUE) #run GSEA analysis
 head(GSEA.result$Enrichment.table)
 head(GSEA.result$RES$GSM2390642)
 head(GSEA.result$indicators$GSM2390642)
@@ -220,11 +220,11 @@ if("ggplot2" %in% rownames(installed.packages()) == TRUE){
 ```{r eval=FALSE, echo=TRUE}
 plot_RES(GSEA_result = GSEA.result,LFC = hypoxia.sorted$log2FoldChange,TF=c("EPAS1"),Accession=c("GSM2390642","GSM1642766"))
 ```
+
 ```{r eval=TRUE,echo=FALSE,fig.height=4,fig.width=7}
-if("ggplot2" %in% rownames(installed.packages()) == TRUE & "tydyr" %in% rownames(installed.packages()) == TRUE){ 
+if("ggplot2" %in% rownames(installed.packages()) == TRUE & "tidyr" %in% rownames(installed.packages()) == TRUE){ 
     # If ggplot2 and tydyr are installed, the vignette will include static plots
     # as an example of those generated with plot_CM, plot_ES, and plot_RES
-    requireNamespace("tidyr")
 
     table<-data.frame(
         argument=c(1:length(GSEA.result$RES[[1]])),
@@ -256,16 +256,13 @@ If the user wants to generate their own database of ChIPseq datasets, the functi
 1. Filter peaks from source and store them as a GRanges object
 
 Specify the folder where the ChIP-Seq files are stored, create an array with the names of the ChIP-Seq files, and choose a format.
+Set a *for* loop to convert all your files to GenomicRanges objects using *txt2GR*. Please note that, by default, only peaks with an associated p-value of 0.05 (for narrow peaks files) or 1e-5 (for MACS files) will be kept. The user can modify the default values by setting the alpha argument to the desired threshold p-value.
 
 ```{r eval=FALSE,echo=TRUE}
 folder<-"~/peak.files.folder"
 File.list<-dir(folder)
 format<-"macs"
-```
 
-Set a *for* loop to convert all your files to GenomicRanges objects using *txt2GR*. Please note that, by default, only peaks with an associated p-value of 0.05 (for narrow peaks files) or 1e-5 (for MACS files) will be kept. The user can modify the default values by setting the alpha argument to the desired threshold p-value.
-
-```{r eval=FALSE,echo=TRUE}
 gr.list<-list()
 for (i in 1:length(File.list)){
     
@@ -282,6 +279,12 @@ for (i in 1:length(File.list)){
     gr.list<-c(gr.list,list(ChIP.dataset.gr))
 }
 ```
+```{r eval=TRUE,echo=TRUE}
+# As an example of the output
+data("ARNT.peaks.bed","ARNT.metadata",package = "TFEA.ChIP") # Loading example datasets for this function
+ARNT.gr<-txt2GR(ARNT.peaks.bed,"macs",ARNT.metadata)
+head(ARNT.gr,n=2)
+```
 
 2. [Optional] Dnase Hypersensitive Sites
 
@@ -292,9 +295,9 @@ The database of gene-associated DHSs is generated from Encode's Master DNaseI HS
     
 ```{r eval=FALSE,echo=TRUE}
 dnaseClusters<-read.table(file="~/path.to.file.txt", 
-                          header = T,sep="\t",stringsAsFactors = F)
+                          header = TRUE,sep="\t",stringsAsFactors = FALSE)
 dnaseClusters<-makeGRangesFromDataFrame(dnaseClusters,
-                         ignore.strand=T,
+                         ignore.strand=TRUE,
                          seqnames.field="chrom",
                          start.field="chromStart",
                          end.field="chromEnd")
@@ -328,17 +331,20 @@ These steps can be modified to generate a new GRanges object containing custom D
 
 The function *GR2tfbs_db* assigns the TFBS peaks in the ChIP datasets stored in *gr.list* to a gene. To this end, a ChIP peak overlaping a Dnase HS region receive the gene label associated to that region. By default the function also assigns the gene name when the ChIP peak does not overlap a Dnase region but maps at less than 10 nucleotides from it. This behaviour can be modified by setting the argument *distanceMargin* to the desired value (by default distanceMargin=10).
 
-```{r eval=FALSE,echo=TRUE}
-TF.gene.binding.db<-GR2tfbs_db(DHS.database,gr.list) # gr.list is a list of outputs from the funcion "txt2GR"
+```{r eval=TRUE,echo=TRUE}
+data("DnaseHS_db","gr.list", package="TFEA.ChIP") # Loading example datasets for this function
+TF.gene.binding.db<-GR2tfbs_db(DnaseHS_db,gr.list) 
+str(TF.gene.binding.db)
 ```
 
 The function, accepts any Genomic Range object that includes a metacolumn with a gene id (gene_id) for each genomic segment. For example, asignation of peaks to genes can be done by providing a list of all the genes in the genome:
 
-```{r eval=FALSE,echo=TRUE}
+```{r eval=TRUE,echo=TRUE}
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+data("gr.list", package="TFEA.ChIP") # Loading example datasets for this function
 txdb<-TxDb.Hsapiens.UCSC.hg19.knownGene
 Genes<-genes(txdb)
-TF.gene.binding.db<-GR2tfbs_db(Genes,gr.list) # gr.list is a list of outputs from the funcion "txt2GR"
+TF.gene.binding.db<-GR2tfbs_db(Genes,gr.list) 
 ```
 
 In this case the information about Dnase hypersensitivity is disregarded and peaks are asigned to overlapping genes (or genes closer than *distanceMargin* residues).
@@ -347,12 +353,13 @@ In this case the information about Dnase hypersensitivity is disregarded and pea
 
 The function *makeTFBSmatrix* generates a binary matrix with a row for each human gene and a column for each independent ChIPseq dataset. The cell of the matrix contain a value of 1 if the gene is bound by the TF and 0 otherwise. This matrix and the metadata table can be used instead of the default TFBS database.
 
-```{r eval=FALSE,echo=TRUE}
-
+```{r eval=TRUE,echo=TRUE}
+data("tfbs.database",package = "TFEA.ChIP") # Loading example datasets for this function
 txdb<-TxDb.Hsapiens.UCSC.hg19.knownGene
 gen.list<-genes(txdb)$gene_id # selecting all the genes in knownGene
 
-myTFBSmatrix<-makeTFBSmatrix(gen.list,TF.gene.binding.db)
+myTFBSmatrix<-makeTFBSmatrix(gen.list,tfbs.database)
+myTFBSmatrix[2530:2533,1:3] # The gene HMGN4 (Entrez ID 10473) has TFBS for this three ChIP-Seq datasets
 
 ```
 
