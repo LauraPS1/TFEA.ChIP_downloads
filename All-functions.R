@@ -157,7 +157,7 @@ txt2GR<-function(fileTable,format,fileMetaData,alpha=NULL){
     }
         }
 
-GR2tfbs_db<-function(Ref.db,gr.list,distanceMargin=10){
+GR2tfbs_db<-function(Ref.db,gr.list,distanceMargin=10,outputAsVector = FALSE){
 
     #' @title Makes a TFBS-gene binding database
     #' @description GR2tfbs_db generates a TFBS-gene binding database
@@ -171,8 +171,10 @@ GR2tfbs_db<-function(Ref.db,gr.list,distanceMargin=10){
     #' (output of txt2GR).
     #' @param distanceMargin Maximum distance allowed between a gene or DHS to
     #' assign a gene to a ChIP-seq peak. Set to 10 bases by default.
-    #' @return List of vectors, one for every ChIP-Seq, storing the IDs of the
-    #' genes to which the TF bound in the ChIP-Seq.
+    #' @param outputAsVector when 'TRUE', the output is a list of vectors
+    #' instrad of a list of GeneSet objects
+    #' @return List of GeneSe objetcs or vectors, one for every ChIP-Seq,
+    #' storing the IDs of the genes to which the TF bound in the ChIP-Seq.
     #' @export GR2tfbs_db
     #' @examples
     #' data("DnaseHS_db","gr.list", package="TFEA.ChIP")
@@ -182,7 +184,13 @@ GR2tfbs_db<-function(Ref.db,gr.list,distanceMargin=10){
         stop("S4Vectors package needed for this function to work. ",
             "Please install it.", call. = FALSE)
     }
+    if(!requireNamespace("GSEABase", quietly = TRUE)){
+        stop("GSEABase package needed for this function to work. ",
+             "Please install it.", call. = FALSE)
+    }
     requireNamespace("S4Vectors")
+    requireNamespace("GSEABase")
+
 
     m<-0
 
@@ -206,14 +214,36 @@ GR2tfbs_db<-function(Ref.db,gr.list,distanceMargin=10){
         }
         assigned_genes<-Ref.db[inSubject]$gene_id
 
-        if ((i-m)==1){
-            TFgenes_list<-list(assigned_genes)
-            names(TFgenes_list)[i-m]<-as.character(
-                gr.list[[i]]$mcols.Accession[1])
+        if (outputAsVector==TRUE){
+            if ((i-m)==1){
+                TFgenes_list<-list(assigned_genes)
+                names(TFgenes_list)[i-m]<-as.character(
+                    gr.list[[i]]$mcols.Accession[1])
+            }else{
+                TFgenes_list<-c(TFgenes_list,list(assigned_genes))
+                names(TFgenes_list)[i-m]<-as.character(
+                    gr.list[[i]]$mcols.Accession[1])
+            }
         }else{
-            TFgenes_list<-c(TFgenes_list,list(assigned_genes))
-            names(TFgenes_list)[i-m]<-as.character(
+            gene_set<-GSEABase::GeneSet(unique(assigned_genes))
+            gene_set@geneIdType@type<-"Entrez Gene ID"
+            gene_set@setIdentifier<-as.character(
                 gr.list[[i]]$mcols.Accession[1])
+            gene_set@organism<-"Homo sapiens"
+            gene_set@shortDescription<-"Genes assigned to ChIP-seq"
+            gene_set@longDescription<-paste0(
+                "Cell: ",gr.list[[i]]$mcols.Cell[1],
+                ", Treatment: ",gr.list[[i]]$mcols.Treatment[1],
+                ", TF: ",gr.list[[i]]$mcols.TF[1])
+            if ((i-m)==1){
+                TFgenes_list<-list(gene_set)
+                names(TFgenes_list)[i-m]<-as.character(
+                    gr.list[[i]]$mcols.Accession[1])
+            }else{
+                TFgenes_list<-c(TFgenes_list,list(gene_set))
+                names(TFgenes_list)[i-m]<-as.character(
+                    gr.list[[i]]$mcols.Accession[1])
+            }
         }
     }
 
@@ -240,13 +270,15 @@ SearchID<-function(GeneID,id_db){
     return(TF_row)
 }
 
-makeTFBSmatrix<-function(GeneList,id_db){
+makeTFBSmatrix<-function(GeneList,id_db,geneSetAsInput = TRUE){
 
     #' @title Function to search for a list of entrez gene IDs.
     #' @description Function to search for a list of entrez gene IDs
     #' in a  TF-gene binding data base.
     #' @param GeneList Array of gene Entrez IDs
     #' @param id_db TF - gene binding database.
+    #' @param geneSetAsInput TRUE for lists of GeneSet objects,
+    #' FALSE for lists of vectors.
     #' @return 1/0 matrix. Each row represents a gene, each column,
     #' a ChIP-Seq file.
     #' @export makeTFBSmatrix
@@ -254,23 +286,41 @@ makeTFBSmatrix<-function(GeneList,id_db){
     #' data("tfbs.database","Entrez.gene.IDs",package = "TFEA.ChIP")
     #' makeTFBSmatrix(Entrez.gene.IDs,tfbs.database)
 
-    for (i in 1:length(GeneList)){
+    if (geneSetAsInput == FALSE){
+        for (i in 1:length(GeneList)){
 
-        TFrow<-SearchID(GeneList[i],id_db)
+            TFrow<-SearchID(GeneList[i],id_db)
 
-        if (i==1){
-            TF_matrix<-matrix(ncol=length(id_db))
-            TF_matrix<-TFrow
-            rm(TFrow)
-        }else{
-            TF_matrix<-rbind(TF_matrix,TFrow)
-            rm(TFrow)
+            if (i==1){
+                TF_matrix<-matrix(ncol=length(id_db))
+                TF_matrix<-TFrow
+                rm(TFrow)
+            }else{
+                TF_matrix<-rbind(TF_matrix,TFrow)
+                rm(TFrow)
+            }
         }
+        colnames(TF_matrix)<-names(id_db)
+        rownames(TF_matrix)<-GeneList
+        return(TF_matrix)
+    }else{
+        for (i in 1:length(id_db)){
+            TF_vector<-rep(0,length(GeneList))
+            names(TF_vector)<-GeneList
+            TF_vector[names(TF_vector) %in% id_db[[i]]@geneIds]<-1
+            if (i==1){
+                TF_matrix<-matrix(nrow=length(GeneList))
+                TF_matrix<-TF_vector
+                rm(TF_vector)
+            }else{
+                TF_matrix<-cbind(TF_matrix,TF_vector)
+                rm(TF_vector)
+            }
+        }
+        colnames(TF_matrix)<-names(id_db)
+        rownames(TF_matrix)<-GeneList
+        return(TF_matrix)
     }
-
-    colnames(TF_matrix)<-names(id_db)
-    rownames(TF_matrix)<-GeneList
-    return(TF_matrix)
 }
 
 set_user_data<-function(metadata,binary_matrix){
@@ -294,6 +344,51 @@ set_user_data<-function(metadata,binary_matrix){
 
     assign("MetaData", metadata, envir = .GlobalEnv)
     assign("Mat01",binary_matrix,envir = .GlobalEnv)
+}
+
+deseq2table<-function(deseq.result){
+    #' @title Extracts data from a DESeq2 results object.
+    #' @description Function to extract Gene IDs, logFoldChange, and p-val
+    #' values from a DESeqResults object
+    #' @param deseq.result DESeqResults object. Must include gene IDs
+    #' @return A table containing Entrez Gene IDs, LogFoldChange and p-val
+    #' values, sorted by log2FoldChange
+    #' @export deseq2table
+    #' @examples
+    #' data("deseq.result",package="TFEA.ChIP")
+    #' deseq2table(deseq.result)
+
+    if(!requireNamespace("DESeq2", quietly = TRUE)){
+        stop("DESeq2 package needed for this function to work. ",
+             "Please install it.", call. = FALSE)
+    }
+    requireNamespace("DESeq2")
+
+    # check the gene ids and translate if needed
+    if(grepl("^\\d*$",rownames(deseq.result)[1])==FALSE){
+        genes<-suppressWarnings(
+            GeneID2entrez(rownames(deseq.result),return.Matrix = T))
+        genes<-genes[!is.na(genes$ENTREZ.ID),]
+        deseq.result<-deseq.result[rownames(deseq.result)%in%genes$GENE.ID,]
+        genes<-genes$ENTREZ.ID
+    }else{
+        genes<-rownames(deseq.result)
+    }
+    # get the rest of the variables
+    log2FoldChange<-deseq.result@listData$log2FoldChange
+    pvalue<-deseq.result@listData$pvalue
+    pval.adj<-p.adjust(pvalue,"fdr")
+
+    Table<-data_frame(
+        Genes=genes,
+        log2FoldChange=log2FoldChange,
+        pvalue=pvalue,
+        pval.adj=pval.adj
+    )
+    Table$Genes<-as.character(Table$Genes)
+    Table<-Table[!is.na(Table$log2FoldChange),]
+    Table<-Table[order(Table$log2FoldChange,decreasing = TRUE),]
+    return(Table)
 }
 
 GeneID2entrez<-function(gene.IDs,return.Matrix = FALSE){
@@ -375,7 +470,7 @@ get_chip_index<-function(database = "g",TFfilter = NULL){
         data("MetaData",package = "TFEA.ChIP",envir = environment())
         }
     if(is.null(TFfilter)){
-        Index<-dplyr::select(MetaData,Accession,TF)
+        Index<-dplyr::select(MetaData,"Accession","TF")
         database<-tolower(database)
         if(database=="encode"|database=="e"){
             Index<-Index[grepl("^wg.*",Index$Accession),]
@@ -383,7 +478,7 @@ get_chip_index<-function(database = "g",TFfilter = NULL){
         return(Index)
 
     }else{
-        Index<-dplyr::select(MetaData,Accession,TF)
+        Index<-dplyr::select(MetaData,"Accession","TF")
         Index<-Index[Index$TF %in% TFfilter,]
         database<-tolower(database)
         if(database=="encode"|database=="e"){
@@ -753,8 +848,8 @@ plot_CM<-function(CM.statMatrix,plot_title = NULL,specialTF = NULL,TF_colors = N
         data("MetaData",package = "TFEA.ChIP",envir = environment())
     }
     MetaData<-MetaData[MetaData$Accession%in%CM.statMatrix$Accession,]
-    MetaData<-dplyr::arrange(MetaData,Accession)
-    CM.statMatrix<-dplyr::arrange(CM.statMatrix,Accession)
+    MetaData<-MetaData[ order(MetaData$Accession), ]
+    CM.statMatrix<-CM.statMatrix[ order(CM.statMatrix$Accession), ]
     CM.statMatrix$Treatment<-MetaData$Treatment
     CM.statMatrix$Cell<-MetaData$Cell
     rm(MetaData)
@@ -777,11 +872,11 @@ plot_CM<-function(CM.statMatrix,plot_title = NULL,specialTF = NULL,TF_colors = N
     }
     if(length(CM.statMatrix[CM.statMatrix$adj.p.value==0,1])>0){
         warn_number<-length(CM.statMatrix[CM.statMatrix$adj.p.value==0,1])
-        CM.statMatrix[CM.statMatrix$p.value==0,]$log.adj.pVal<-rep(
-            max(CM.statMatrix[CM.statMatrix$adj.p.value!=0,]$log.adj.pVal),
+        CM.statMatrix[CM.statMatrix$p.value==0,"log.adj.pVal"]<-rep(
+            max(CM.statMatrix[CM.statMatrix$adj.p.value!=0,"log.adj.pVal"]),
             length(CM.statMatrix[CM.statMatrix$adj.p.value==0,1]))
         warning(warn_number," elements have a -log(p-Value) of Inf. ",
-            "Maximum value for -log(p-Val) introduced instead.")
+                "Maximum value for -log(p-Val) introduced instead.")
     }
 
     if (length(markerColors)>1){
@@ -858,10 +953,10 @@ plot_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_colors =
     requireNamespace("dplyr")
     requireNamespace("plotly")
 
-    if(is.list(GSEA_result)==TRUE){
-        enrichmentTable<-GSEA_result$Enrichment
-    }else if(is.data.frame(GSEA_result)==TRUE){
+    if(is.data.frame(GSEA_result)==TRUE){
         enrichmentTable<-GSEA_result
+    }else if(is.list(GSEA_result)==TRUE){
+        enrichmentTable<-GSEA_result$Enrichment
     }
 
     if (!is.null(Accession) | !is.null(TF)){
@@ -906,8 +1001,8 @@ plot_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_colors =
         data("MetaData",package = "TFEA.ChIP",envir = environment())
     }
     MetaData<-MetaData[MetaData$Accession%in%enrichmentTable$Accession,]
-    MetaData<-dplyr::arrange(MetaData,Accession)
-    enrichmentTable<-dplyr::arrange(enrichmentTable,Accession)
+    MetaData<-MetaData[ order(MetaData$Accession), ]
+    enrichmentTable<-enrichmentTable[ order(enrichmentTable$Accession), ]
     enrichmentTable$Treatment<-MetaData$Treatment
     enrichmentTable$Cell<-MetaData$Cell
     rm(MetaData)
