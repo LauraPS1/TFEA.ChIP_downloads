@@ -390,8 +390,8 @@ preprocessInputData<-function(inputData){
            (c("Genes","pvalue","log2FoldChange") %in% colnames(inputData)) &
            FALSE %in%
            (c("Genes","pval.adj","log2FoldChange") %in% colnames(inputData))){
-            stop("The necessary atributes can't be found in input data frame. ",
-                "Input data must include: 'Genes', 'log2FoldChange',and ",
+            stop("The necessary atributes can't be found in input data frame",
+                ". Input data must include: 'Genes', 'log2FoldChange',and ",
                 "'pvalue' or 'pval.adj'", call. = FALSE)
         }
         # If there's not and adjusted p-value column
