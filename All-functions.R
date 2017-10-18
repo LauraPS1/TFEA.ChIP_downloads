@@ -39,7 +39,7 @@ txt2GR<-function(fileTable,format,fileMetaData,alpha=NULL){
 
     stopifnot(format %in% c("narrowpeak", "macs"))
     stopifnot((is.data.frame(fileMetaData) || is.matrix(fileMetaData) ||
-        is.array(MetaData)))
+        is.array(fileMetaData)))
 
     # checking fileMetadata has all the fields needed
     # and the correct column names and column order.
@@ -327,8 +327,11 @@ set_user_data<-function(metadata,binary_matrix){
     #' # package.
     #' set_user_data(MetaData,Mat01)
 
-    assign("MetaData", metadata, envir = .GlobalEnv)
-    assign("Mat01",binary_matrix,envir = .GlobalEnv)
+    pos <- 1
+    envir = as.environment(pos)
+
+    assign("MetaData", metadata, envir = envir)
+    assign("Mat01",binary_matrix,envir = envir)
 }
 
 preprocessInputData<-function(inputData){
@@ -452,8 +455,10 @@ Select_genes<-function(GeneExpression_df, max_pval=0.05, min_pval=0, max_LFC=NUL
     }
     if(max_pval<min_pval){
         stop("'max_pval' has to be greater than 'min_pval'. ", call. = FALSE)
-    }else if (max_LFC<min_LFC){
-        stop("'max_LFC' has to be greater than 'min_LFC'. ", call. = FALSE)
+    }else if (!(is.null(max_LFC)) & !(is.null(min_LFC))){
+        if(max_LFC<min_LFC){
+            stop("'max_LFC' has to be greater than 'min_LFC'.", call. = FALSE)
+        }
     }
 
     # Selecting by p-value
@@ -550,6 +555,7 @@ get_chip_index<-function(database = "g",TFfilter = NULL){
     #' get_chip_index(database="general",TFfilter=c("SMAD2","SMAD4"))
 
     if(!exists("MetaData")){
+        MetaData<-NULL
         data("MetaData",package = "TFEA.ChIP",envir = environment())
         }
     if(is.null(TFfilter)){
@@ -600,6 +606,7 @@ contingency_matrix<-function(test_list,control_list,chip_index=get_chip_index())
         control_list<-control_list[!(control_list %in% test_list)]
     }
     if (exists("Mat01")==FALSE){
+        Mat01<-NULL
         data("Mat01",package = "TFEA.ChIP",envir = environment())
         }
     Matrix1<-Mat01[rownames(Mat01)%in%test_list,
@@ -788,6 +795,7 @@ GSEA_run<-function(gene.list,chip_index=get_chip_index(),get.RES = FALSE,RES.fil
     #' GSEA.result <- GSEA_run(Entrez.gene.IDs,chip_index,get.RES = TRUE)
 
     if (!exists("Mat01")){
+        Mat01<-NULL
         data("Mat01",package = "TFEA.ChIP",envir = environment())
     }
     Mat01<-Mat01[,colnames(Mat01)%in%chip_index$Accession]
@@ -911,6 +919,7 @@ plot_CM<-function(CM.statMatrix,plot_title = NULL,specialTF = NULL,TF_colors = N
         markerColors<-highlight_list[[2]]
     }
     if (!exists("MetaData")){
+        MetaData<-NULL
         data("MetaData",package = "TFEA.ChIP",envir = environment())
     }
     MetaData<-MetaData[MetaData$Accession%in%CM.statMatrix$Accession,]
@@ -1062,6 +1071,7 @@ plot_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_colors =
     }
     enrichmentTable$symbol<-simbolo
     if (!exists("MetaData")){
+        MetaData<-NULL
         data("MetaData",package = "TFEA.ChIP",envir = environment())
     }
     MetaData<-MetaData[MetaData$Accession%in%enrichmentTable$Accession,]
@@ -1151,6 +1161,11 @@ plot_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.sty
         stop("plotly package needed for this function to work.",
             " Please install it.", call. = FALSE)
     }
+    # Checking input variables
+    if (!exists("MetaData")){
+        MetaData<-NULL
+        data("MetaData",package = "TFEA.ChIP",envir = environment())
+    }
 
     if (!is.null(Accession) | !is.null(TF)){
         if(is.null(Accession)){
@@ -1181,9 +1196,7 @@ plot_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.sty
     chip_index<-get_chip_index("g")
     tf<-chip_index[chip_index[,1]%in%Accession,]
     rm(chip_index)
-    if (!exists("MetaData")){
-        data("MetaData",package = "TFEA.ChIP",envir = environment())
-    }
+
     MetaData<-MetaData[MetaData$Accession%in%Accession,]
     Cell<-vector()
     Treatment<-rep("no treatment",length(Accession))
