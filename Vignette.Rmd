@@ -23,37 +23,50 @@ The package includes a set of tools to customize the ChIP data, perform enrichme
 TFEA.ChIP is designed to take the output of a differential expression analysis and identify TFBS enriched in the list of DE genes. In the case of the analysis of association, the only required input is a set of DE genes and, optionally, a set of control genes whose expression is not altered by the experimental conditions under study. For the GSEA analysis a ranked list of genes is required. This is supplied as a dataframe containing a column with gene names and a numerical column with the ranking metric, which typically are log-fold change or p-values for the gene expression changes in the two conditions under evaluation. 
 For illustration purposes we will derive the input required for both analysis from a table containing the following field columns:
 
-- Gene name (*Gene*). Internally the package uses Entrez IDs, but translating from Gene Symbols and ENSEMBL IDs is available.
+- Gene name (*Genes*). Internally the package uses Entrez IDs, but translating from Gene Symbols and ENSEMBL IDs is available.
 - Log2 Fold Change (*Log2FoldChange*), indicating the difference in expression for each gene in the two experimental conditions being compared.
-- Adjusted p-value (*padj*) for the difference in gene expression between the two conditions.
+- p-value (*pvalue*) or adjusted p-value (*pval.adj*) for the difference in gene expression between the two conditions.
 
-The output of popular packages, such as DESeq2, for detection of differentially expressed genes from the analysis of count data from RNA-seq experiments produce tables with this information.
+The output of popular packages, such as DESeq2, for detection of differentially expressed genes from the analysis of count data from RNA-seq experiments produce tables with this information. The *hypoxia_DESeq* and *hypoxia* datasets are the output of a differential expression analysis performed on an RNAseq experiment analyzing the response to hypoxia of endothelial cells^[Tiana, M et al. The SIN3A histone deacetylase complex is required for a complete transcriptional response to hypoxia. https://doi.org/10.1101/182691 ] deposited at the NCBI's GEO repository (GSE89831).
 
-The *hypoxia* dataset is the output of a differential expression analysis performed with DESeq2 on an RNAseq experiment analyzing the response to hypoxia of endothelial cells^[Tiana, M et al. The SIN3A histone deacetylase complex is required for a complete transcriptional response to hypoxia. https://doi.org/10.1101/182691 ] deposited at the NCBI's GEO repository (GSE89831). To load this data set copy and paste the following lines into your R interpreter:
+To extract the information from a DESeqResults object or a data frame the function *preprocessInputData* is available. 
 
-```{r eval=TRUE,echo=TRUE}
-data("hypoxia",package = "TFEA.ChIP")  #load hypoxia dataset
-head(hypoxia) #shows first rows of the hypoxia dataset
+```{r eval=TRUE,echo=TRUE,message=FALSE}
+library(TFEA.ChIP)
+data("hypoxia_DESeq","hypoxia",package="TFEA.ChIP") # load example datasets
+hypoxia_table<-preprocessInputData(hypoxia_DESeq)
+head(hypoxia_table)
+
+head(hypoxia)
+hypoxia_table<-preprocessInputData(hypoxia)
+head(hypoxia_table)
+
 ```
+
+After running *preprocessInputData*, your dataset will be ready to use with the rest of the package; gene names will be in Entrez Gene ID format and the resulting table is sorted by log2(Fold Change). 
 
 ## Analysis of the association of TFBS and differential expression.
 
 1. Identification of DE genes
 
-As indicated before, for this analysis, we must provide a list of genes are considered differentially induced and a list of control genes whose expression is not altered in the analyzed experiment:
+
+As indicated before, for this analysis, we must provide a list of genes are considered differentially induced and a list of control genes whose expression is not altered in the analyzed experiment. For that we will use the function *Select_genes*:
 ```{r eval=TRUE,echo=TRUE}
-Genes.Upreg <- hypoxia[which(hypoxia$log2FoldChange > 1 & hypoxia$padj <= 0.05),"Gene"]   #extract vector with names of upregulated genes
-Genes.Control <- hypoxia[which(abs(hypoxia$log2FoldChange) < 0.25 & hypoxia$padj > 0.5),"Gene"]   #extract vector with names of non-responsive genes
+#extract vector with names of upregulated genes
+Genes.Upreg <- Select_genes(hypoxia_table,min_LFC = 1)
+#extract vector with names of non-responsive genes
+Genes.Control <- Select_genes(hypoxia_table,
+    min_pval = 0.5, max_pval = 1,
+    min_LFC = -0.25, max_LFC = 0.25)
 ```
 
-2. Translate the gene IDs to Entrez Gene IDs
+  i) Translate the gene IDs to Entrez Gene IDs
 
-Note that, in this particular case, genes are represented using their HGNC symbol. However, internally TFEA.ChIP works with ENTREZ gene IDs, thus other types of gene IDs must be translated into the corresponding ENTREZ IDs. To that end we use the *GeneID2entrez* function:
+In case the user es interested in analyzin a particular set of genes that doesn't come from the input dataset, translating the IDs to Entrez Gene ID format is required. To that end its available the function *GeneID2entrez*:
 ```{r eval=TRUE,echo=TRUE,message=FALSE}
-library(TFEA.ChIP)
 #Conversion of hgnc to ENTREZ IDs
-Genes.Upreg <- GeneID2entrez(Genes.Upreg)
-Genes.Control <- GeneID2entrez(Genes.Control)
+GeneID2entrez(gene.IDs = c("EGLN3","NFYA","ALS2","MYC","ARNT"))
+
 ```
 
 3.  Association analysis
@@ -92,24 +105,8 @@ The table of results generated by *getCMstats* can be parsed to select candidate
 ```{r eval=FALSE,echo=TRUE}
 plot_CM(pval_mat_UP) #plot p-values against ORs
 ```
-```{r eval=TRUE,echo=FALSE,fig.height=4,fig.width=7}
-if("ggplot2" %in% rownames(installed.packages()) == TRUE){ 
-    # If ggplot2 is installed, the vignette will include static plots
-    # as an example of those generated with plot_CM, plot_ES, and plot_RES
-    requireNamespace("ggplot2")
-    
-    pval_mat_UP$highlight<-rep("Other",length(pval_mat_UP$Accession))
-    
-    ggplot2::ggplot(pval_mat_UP,ggplot2::aes(x=log.adj.pVal, y=OR))+
-        ggplot2::geom_point(ggplot2::aes(col=highlight))+
-        ggplot2::labs(title="Transcription factor enrichment", subtitle="HUVEC cells under hypoxia",
-             y="Odds Ratio", x="log10(p-value)",
-             caption="To limit this file's size, only static versions of the plots are shown in this vignette")+
-        ggplot2::theme_bw()+
-        ggplot2::scale_color_manual(values = c("Other"="lightsteelblue3"))+
-        ggplot2::theme(legend.position="none")
-}
-```
+![Snapshot of a plot generated with plot_CM.](CMplot1.png)
+
 In fact, the exploration of this graph shows a strong enrichment for several HIF datasets, as expected for the *hypoxia* dataset. This can be clearly shown by highlighting the datasets of interest:
 
 
@@ -119,40 +116,15 @@ names(HIFs)<-c("EPAS1","HIF1A","ARNT")
 col<-c("red","blue","green")
 plot_CM(pval_mat_UP,specialTF = HIFs,TF_colors = col) #plot p-values against ORs highlighting indicated TFs
 ```
-```{r eval=TRUE,echo=FALSE,fig.height=4,fig.width=7}
-if("ggplot2" %in% rownames(installed.packages()) == TRUE){ 
-    # If ggplot2 is installed, the vignette will include static plots
-    # as an example of those generated with plot_CM, plot_ES, and plot_RES
-    
-    pval_mat_UP$highlight<-rep("Other",length(pval_mat_UP$Accession))
-    pval_mat_UP[pval_mat_UP$TF=="HIF1A"|pval_mat_UP$TF=="EPAS1"|pval_mat_UP$TF=="ARNT",]$highlight<-"HIF"
-    pval_mat_UP<-arrange(pval_mat_UP,desc(highlight))
-    ggplot2::ggplot(pval_mat_UP,ggplot2::aes(x=log.adj.pVal, y=OR))+
-        ggplot2::geom_point(ggplot2::aes(col=highlight))+
-        ggplot2::labs(title="Transcription factor enrichment", subtitle="HUVEC cells under hypoxia",
-             y="Odds Ratio", x="log10(p-value)",
-             caption="To limit this file's size, only static versions of the plots are shown in this vignette")+
-        ggplot2::theme_bw()+
-        ggplot2::scale_color_manual(name="TF",
-            values = c("Other"="lightsteelblue3",
-                                      "HIF"="red"))
-}
-```
+![Snapshot of a plot generated with plot_CM.](CMplot2.png)
 
 ## Gene Set Enrichment Analysis.
     
 1. Generate a sorted list of ENTREZ IDs
 
-The GSEA analysis implemented in the TFEA.ChIP package  requires as input a sorted list of genes. In this example, we will sort genes according to log fold change in descending order. However, they could be sorted by any numerical parameter including p-value. If your dataset contains genes with a log(Fold Change) of Inf or -Inf, we recommend to filter those that do not haver a significant p-value out of the list. In addition, as indicated before, internally TFEA.ChIP works with ENTREZ gene IDs, thus other types of gene IDs must be translated into the corresponding ENTREZ IDs.
+The GSEA analysis implemented in the TFEA.ChIP package requires as input a sorted list of genes. By default, the function *preprocessInputData* will sort genes according to log fold change in descending order. However, they could be sorted by any numerical parameter including p-value. If you want to generate your custom gene list with other parameters, remember to make sure the gene IDs are in Entrez Gene ID format or translate them with *GeneID2Entrez*
 
-```{r eval=TRUE,echo=TRUE,message=FALSE}
-genes <- GeneID2entrez(hypoxia$Gene,return.Matrix = TRUE) #Conversion of hgnc to ENTREZ IDs
-hypoxia.sorted<-merge(hypoxia,genes,by.x=c("Gene"),by.y=c("GENE.ID"),all.x=TRUE) #create new data table including ENTREZ ID
-hypoxia.sorted<-hypoxia.sorted[order(-hypoxia.sorted$log2FoldChange),] #sort genes according to fold induction
-hypoxia.sorted<-hypoxia.sorted[!is.na(hypoxia.sorted$ENTREZ.ID),] #removes entries not matching an ENTREZ ID
-```
-
-2. Select the datasets to analyze
+2. Select the ChIP-Seq datasets to analyze
 
 By default, the analysis will include all the ChIP-Seq experiments available in the database. However, this analysis might take several minutes to run. To restrict the analysis to a subset of the database we can generate an index variable and pass it to the function *GSEA_run*. This will limit the analysis to the ChIP-Seq datasets of the user's choosing. This index variable can be generated using the function *get_chip_index* and allows the user to select the whole database, the set of ChIP-Seq experiments produced by the ENCODE project ("encode") or a specific subset of transcription factors (as a vector containing the TF names).
 
@@ -166,8 +138,10 @@ The function *GSEA_run* will perform a GSEA-based analysis on the input gene lis
 * When **False**, the function returns a data frame storing maximum Enrichment Score and associated p-value determined for each dataset included in the analysis.
 * When **True**, the function returns a list of three elements. The first element (*Enrichment.table*) is the enrichment data frame previously mentioned. The second element (*RES*) is a list of vectors containing the *Running Enrichment Scores* values (see GSEA documentation, http://software.broadinstitute.org/gsea/doc/GSEAUserGuideTEXT.htm#_Interpreting_GSEA_Results) for each to the sorted genes tested against each one of the analyzed ChIP datasets. The third element (*indicators*) is a list of vectors indicating if the sorted genes were bound by the factor analyzed in each ChIP dataset. 
 
+```{r eval=TRUE,echo=TRUE,results='hide'}
+GSEA.result <- GSEA_run(hypoxia_table$Genes,chip_index,get.RES = TRUE) #run GSEA analysis
+```
 ```{r eval=TRUE,echo=TRUE}
-GSEA.result <- GSEA_run(hypoxia.sorted$ENTREZ.ID,chip_index,get.RES = TRUE) #run GSEA analysis
 head(GSEA.result$Enrichment.table)
 head(GSEA.result$RES$GSM2390642)
 head(GSEA.result$indicators$GSM2390642)
@@ -187,61 +161,19 @@ TFEA.ChIP includes two functions that use the package *plotly* to generate inter
 TF.hightlight<-c("EPAS1","ARNT")
 names(TF.hightlight)<-c("EPAS1","ARNT")
 col<- c("red","blue")
-plot_ES(GSEA.result,LFC = hypoxia.sorted$log2FoldChange,specialTF = TF.hightlight,TF_colors = col)
+plot_ES(GSEA.result,LFC = hypoxia_table$log2FoldChange,specialTF = TF.hightlight,TF_colors = col)
 ```
-```{r eval=TRUE,echo=FALSE,fig.height=4,fig.width=7}
-if("ggplot2" %in% rownames(installed.packages()) == TRUE){ 
-    # If ggplot2 is installed, the vignette will include static plots
-    # as an example of those generated with plot_CM, plot_ES, and plot_RES
-    table<-GSEA.result$Enrichment.table
-    table$highlight<-rep("Other",length(table$Accession))
-    table[table$TF=="EPAS1",]$highlight<-"EPAS1"
-    table[table$TF=="ARNT",]$highlight<-"ARNT"
-    table<-arrange(table,desc(highlight))
-
-    ggplot2::ggplot(table,ggplot2::aes(x=Arg.ES, y=ES))+
-        ggplot2::geom_point(ggplot2::aes(col=highlight))+
-        ggplot2::labs(title="Transcription factor enrichment", subtitle="HUVEC cells under hypoxia",
-             y="Enrichment score", x="Argument",
-             caption="To limit this file's size, only static versions of the plots are shown in this vignette")+
-        ggplot2::theme_bw()+
-        ggplot2::scale_color_manual(name="TF",
-                           values = c("Other"="lightsteelblue3",
-                                      "EPAS1"="red",
-                                      "ARNT"="blue"))+
-        ggplot2::geom_hline(yintercept = 0)
-}
-```
+![Snapshot of a plot generated with plot_ES.](GSEAplot1.png)
 
 
   ii) Plot Runing Enrichment Scores with *plot_RES*. 
   This function will plot **all** the RES stored in the *GSEA_run* output. It is only recommended to restrict output to specific TF and/or datasets by setting the parameters *TF* and/or *Accession* respectively:
     
 ```{r eval=FALSE, echo=TRUE}
-plot_RES(GSEA_result = GSEA.result,LFC = hypoxia.sorted$log2FoldChange,TF=c("EPAS1"),Accession=c("GSM2390642","GSM1642766"))
+plot_RES(GSEA_result = GSEA.result,LFC = hypoxia_table$log2FoldChange,TF=c("EPAS1"),Accession=c("GSM2390642","GSM1642766"))
 ```
+![Snapshot of a plot generatd with plot_RES.](GSEAplot2.png)
 
-```{r eval=TRUE,echo=FALSE,fig.height=4,fig.width=7}
-if("ggplot2" %in% rownames(installed.packages()) == TRUE & "tidyr" %in% rownames(installed.packages()) == TRUE){ 
-    # If ggplot2 and tydyr are installed, the vignette will include static plots
-    # as an example of those generated with plot_CM, plot_ES, and plot_RES
-
-    table<-data.frame(
-        argument=c(1:length(GSEA.result$RES[[1]])),
-        GSM2390642=GSEA.result$RES[["GSM2390642"]],
-        GSM1642766=GSEA.result$RES[["GSM1642766"]]
-    )
-    table %>%
-        tidyr::gather(Accesion,value, GSM2390642, GSM1642766) %>%
-        ggplot2::ggplot(ggplot2::aes(x=argument, y=value, colour=Accesion)) +
-        ggplot2::geom_line()+
-        ggplot2::labs(title="Running Enrichment Scores", subtitle="HUVEC cells under hypoxia",
-             y="RES", x="Argument",
-             caption="To limit this file's size, only static versions of the plots are shown in this vignette")+
-        ggplot2::theme_bw()+
-        ggplot2::geom_hline(yintercept = 0)
-}
-```
 
 
 # Building a TF-gene binding database
