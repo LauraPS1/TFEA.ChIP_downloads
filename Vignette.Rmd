@@ -135,7 +135,9 @@ chip_index<-get_chip_index(TFfilter = c("HIF1A","EPAS1","ARNT")) #restrict the a
 3. Run the GSEA analysis
 
 The function *GSEA_run* will perform a GSEA-based analysis on the input gene list. This function is based on the R-GSEA R script bundle written by the GSEA team at the Broad Institute of MIT and Harvard ^[Subramanian, Tamayo, et al. (2005) PNAS 102, 15545-15550] ^[Mootha, Lindgren, et al. (2003) Nat Genet 34, 267-273]. The output of the analysis depends on the variable *get.RES*: 
+
 * When **False**, the function returns a data frame storing maximum Enrichment Score and associated p-value determined for each dataset included in the analysis.
+
 * When **True**, the function returns a list of three elements. The first element (*Enrichment.table*) is the enrichment data frame previously mentioned. The second element (*RES*) is a list of vectors containing the *Running Enrichment Scores* values (see GSEA documentation, http://software.broadinstitute.org/gsea/doc/GSEAUserGuideTEXT.htm#_Interpreting_GSEA_Results) for each to the sorted genes tested against each one of the analyzed ChIP datasets. The third element (*indicators*) is a list of vectors indicating if the sorted genes were bound by the factor analyzed in each ChIP dataset. 
 
 ```{r eval=TRUE,echo=TRUE,results='hide'}
