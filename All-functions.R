@@ -669,7 +669,7 @@ getCMstats<-function(contMatrix_list,chip_index=get_chip_index()){
         lista=contMatrix_list)
 
     chip_index<-chip_index[chip_index$Accession %in% names(contMatrix_list),]
-    chip_index<-chip_index[order(names(contMatrix_list)),]
+    chip_index<-chip_index[order(names(contMatrix_list),decreasing = TRUE),]
 
     statMat<-data.frame(
         Accession=chip_index$Accession,
