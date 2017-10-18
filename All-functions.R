@@ -385,21 +385,14 @@ preprocessInputData<-function(inputData){
     }else if (class(inputData)=="data.frame"){
         # Extracting data from a data frame.
         # Checkig if all the necessary columns are present
-        if(FALSE %in% ("log2FoldChange" %in% colnames(inputData))){
-          stop(
-            "The necessary atributes can't be found in input data frame. ",
-            "Input data must include a numeric column 'log2FoldChange' ",
-            "that will be used to sort the vector of names.",
-            call. = FALSE)
-        }
+
         if(FALSE %in%
            (c("Genes","pvalue","log2FoldChange") %in% colnames(inputData)) &
            FALSE %in%
            (c("Genes","pval.adj","log2FoldChange") %in% colnames(inputData))){
-            warning(
-                "The necessary atributes can't be found in input data frame. ",
+            stop("The necessary atributes can't be found in input data frame. ",
                 "Input data must include: 'Genes', 'log2FoldChange',and ",
-                "'pvalue' or 'pval.adj'")
+                "'pvalue' or 'pval.adj'", call. = FALSE)
         }
         # If there's not and adjusted p-value column
         if(!("pval.adj" %in% colnames(inputData))){
@@ -423,8 +416,7 @@ preprocessInputData<-function(inputData){
     )
 }
 
-Select_genes<-function(GeneExpression_df, max_pval=0.05, min_pval=0, 
-                       max_LFC=NULL,min_LFC=NULL ){
+Select_genes<-function(GeneExpression_df, max_pval=0.05, min_pval=0, max_LFC=NULL,min_LFC=NULL ){
     #' @title Extracts genes according to logFoldChange and p-val limits
     #' @description Function to extract Gene IDs from a dataframe according
     #' to the established limits for log2(FoldChange) and p-value.
