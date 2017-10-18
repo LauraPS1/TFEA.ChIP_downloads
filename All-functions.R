@@ -423,7 +423,8 @@ preprocessInputData<-function(inputData){
     )
 }
 
-Select_genes<-function(GeneExpression_df, max_pval=0.05, min_pval=0, max_LFC=NULL,min_LFC=NULL ){
+Select_genes<-function(GeneExpression_df, max_pval=0.05, min_pval=0, 
+                       max_LFC=NULL,min_LFC=NULL ){
     #' @title Extracts genes according to logFoldChange and p-val limits
     #' @description Function to extract Gene IDs from a dataframe according
     #' to the established limits for log2(FoldChange) and p-value.
