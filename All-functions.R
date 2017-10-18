@@ -6,7 +6,7 @@
 #' @importFrom dplyr "%>%" arrange
 #' @importFrom grDevices colorRamp
 #' @importFrom stats fisher.test p.adjust
-#' @importFrom utils data
+#' @importFrom utils data setTxtProgressBar txtProgressBar
 #' @import TxDb.Hsapiens.UCSC.hg19.knownGene
 #' @import org.Hs.eg.db
 ################### FUNCTIONS ####
@@ -37,45 +37,55 @@ txt2GR<-function(fileTable,format,fileMetaData,alpha=NULL){
     #' data("ARNT.peaks.bed","ARNT.metadata",package = "TFEA.ChIP")
     #' ARNT.gr<-txt2GR(ARNT.peaks.bed,"macs",ARNT.metadata)
 
-    requireNamespace("GenomicRanges")
-    requireNamespace("IRanges")
-    requireNamespace("dplyr")
+    stopifnot(format %in% c("narrowpeak", "macs"))
+    stopifnot((is.data.frame(fileMetaData) || is.matrix(fileMetaData) ||
+        is.array(MetaData)))
 
-    if (is.data.frame(fileMetaData)==FALSE){
-        if(is.matrix(fileMetaData)){
-            if(length(fileMetaData[1,])==7){
-                fileMetaData<-as.data.frame(
-                    fileMetaData, stringsAsFactors=FALSE)
-            }else{
-                warning("fileMetaData format error: 'fileMetaData' must be a",
-                        " data frame/matrix/array with 7 atributes: 'Name',",
-                        "'Accession', 'Cell', 'Cell Type','Treatment',",
-                        "'Antibody','TF'")
-                break
-            }
-        }else if(is.array(fileMetaData)){
-            if(length(fileMetaData)==7){
-                fileMetaData<-as.data.frame(
-                    fileMetaData,stringsAsFactors=FALSE)
-            }else{
-                warning("fileMetaData format error: 'fileMetaData' must be a",
-                        " data frame/matrix/array with 7 atributes: 'Name',",
-                        "'Accession', 'Cell', 'Cell Type','Treatment',",
-                        "'Antibody','TF'")
-                break
-            }
+    # checking fileMetadata has all the fields needed
+    # and the correct column names and column order.
+    columnNames<-c("Name","Accession", "Cell", "Cell.Type","Treatment",
+        "Antibody","TF")
+
+    if(is.matrix(fileMetaData) & length(fileMetaData[1,])==7){
+        if(FALSE %in% (columnNames %in% colnames(fileMetaData))){
+            stop("fileMetaData format error: 'fileMetaData' must be a",
+                " data frame/matrix/array with 7 atributes: 'Name',",
+                "'Accession', 'Cell', 'Cell.Type','Treatment',",
+                "'Antibody','TF'")
         }else{
-            warning("fileMetaData format error: 'fileMetaData' must be a data",
-                "frame/matrix/array with 7 atributes: 'Name', 'Accession',",
-                " 'Cell', 'Cell Type','Treatment','Antibody','TF'")
-            break
+            fileMetaData<-as.data.frame(fileMetaData, stringsAsFactors=FALSE)
+            fileMetaData<-fileMetaData[columnNames]
         }
+    }else if(is.array(fileMetaData) & length(fileMetaData)==7){
+        if(FALSE %in% (columnNames %in% names(fileMetaData))){
+            stop("fileMetaData format error: 'fileMetaData' must be a",
+                " data frame/matrix/array with 7 atributes: 'Name',",
+                "'Accession', 'Cell', 'Cell.Type','Treatment',",
+                "'Antibody','TF'")
+        }else{
+            fileMetaData<-as.data.frame(fileMetaData,stringsAsFactors=FALSE)
+            fileMetaData<-fileMetaData[columnNames]
         }
+    }else if(is.data.frame(fileMetaData) & length(fileMetaData)==7){
+        if(FALSE %in% (columnNames %in% colnames(fileMetaData))){
+            stop("fileMetaData format error: 'fileMetaData' must be a",
+                 " data frame/matrix/array with 7 atributes: 'Name',",
+                 "'Accession', 'Cell', 'Cell.Type','Treatment',",
+                 "'Antibody','TF'")
+        }else{fileMetaData<-fileMetaData[columnNames]}
+    }else{
+        stop("fileMetaData format error: 'fileMetaData' must be a",
+            " data frame/matrix/array with 7 atributes: 'Name',",
+            "'Accession', 'Cell', 'Cell.Type','Treatment',",
+            "'Antibody','TF'")
+    }
+
     format<-tolower(format)
 
     if(format=="narrowpeak"){
 
         if(fileTable[1,8]==-1 & fileTable[1,9]==-1){
+            # If there's no p-value column
             warning ("The ChIP-Seq input file ",fileMetaData$Name,
                 " does not include p-value or Q-value for each peak.",
                 " Please, make sure the peaks in the input file have been",
@@ -85,12 +95,14 @@ txt2GR<-function(fileTable,format,fileMetaData,alpha=NULL){
             fileTable$score=rep(NA,length(fileTable[,1]))
             colnames(fileTable)[1:3]<-c("chr","start","end")
         }else if(fileTable[1,8]==-1){
+            # If the score table has a log10(p-value) column
             fileTable<-fileTable[,c(1,2,3,9)]
             colnames(fileTable)<-c("chr","start","end","score")
             Stat<-"log10(p-Value)"
             if(is.null(alpha)){valLimit<-1.3}else{valLimit<-(-log10(alpha))}
             fileTable<-fileTable[fileTable$score>valLimit,]
         }else if(fileTable[1,9]==-1){
+            # If the score table has a p-value column
             fileTable<-fileTable[,c(1,2,3,8)]
             colnames(fileTable)<-c("chr","start","end","score")
             Stat<-"p-Value"
@@ -149,13 +161,8 @@ txt2GR<-function(fileTable,format,fileMetaData,alpha=NULL){
         )
         return(gr)
 
-    }else{
-        warning("Wrong file format. Only narrowPeak or MACS output",
-            " ('_peaks.bed') are supported.\nPlease choose either",
-            " 'narrowPeak' or 'Macs'.")
-        break
     }
-        }
+}
 
 GR2tfbs_db<-function(Ref.db,gr.list,distanceMargin=10,outputAsVector = FALSE){
 
@@ -188,13 +195,9 @@ GR2tfbs_db<-function(Ref.db,gr.list,distanceMargin=10,outputAsVector = FALSE){
         stop("GSEABase package needed for this function to work. ",
              "Please install it.", call. = FALSE)
     }
-    requireNamespace("S4Vectors")
-    requireNamespace("GSEABase")
-
 
     m<-0
-
-    for(i in 1:length(gr.list)){
+    for(i in seq_along(gr.list)){
 
         gr<-gr.list[[i]]
 
@@ -246,28 +249,7 @@ GR2tfbs_db<-function(Ref.db,gr.list,distanceMargin=10,outputAsVector = FALSE){
             }
         }
     }
-
     return(TFgenes_list)
-}
-
-SearchID<-function(GeneID,id_db){
-
-    #' @title Searchs for an Entrez gene ID in a TF-gene database
-    #' @description Searchs for an Entrez gene ID in a db that contains
-    #' the IDs of the genes a TF binds to.
-    #' @param GeneID gene Entrez ID.
-    #' @param id_db TF - gene binding database.
-    #' @return 1/0 row. Each element represents a TF ChIP-Seq experiment.
-
-    # examples
-    # SearchID(GeneID,id_db)
-
-    TF_row<-rep(0,length=length(id_db))
-
-    for (i in 1:length(id_db)){
-        if (GeneID %in% id_db[[i]]==TRUE){TF_row[i]<-1}
-    }
-    return(TF_row)
 }
 
 makeTFBSmatrix<-function(GeneList,id_db,geneSetAsInput = TRUE){
@@ -286,30 +268,33 @@ makeTFBSmatrix<-function(GeneList,id_db,geneSetAsInput = TRUE){
     #' data("tfbs.database","Entrez.gene.IDs",package = "TFEA.ChIP")
     #' makeTFBSmatrix(Entrez.gene.IDs,tfbs.database)
 
-    if (geneSetAsInput == FALSE){
-        for (i in 1:length(GeneList)){
-
-            TFrow<-SearchID(GeneList[i],id_db)
-
-            if (i==1){
-                TF_matrix<-matrix(ncol=length(id_db))
-                TF_matrix<-TFrow
-                rm(TFrow)
-            }else{
-                TF_matrix<-rbind(TF_matrix,TFrow)
-                rm(TFrow)
-            }
-        }
-        colnames(TF_matrix)<-names(id_db)
-        rownames(TF_matrix)<-GeneList
-        return(TF_matrix)
-    }else{
-        for (i in 1:length(id_db)){
+    if (geneSetAsInput == TRUE){
+        for (i in seq_along(id_db)){
             TF_vector<-rep(0,length(GeneList))
             names(TF_vector)<-GeneList
             TF_vector[names(TF_vector) %in% id_db[[i]]@geneIds]<-1
             if (i==1){
                 TF_matrix<-matrix(nrow=length(GeneList))
+                TF_matrix<-TF_vector
+                rm(TF_vector)
+            }else{
+                TF_matrix<-cbind(TF_matrix,TF_vector)
+                rm(TF_vector)
+            }
+        }
+        colnames(TF_matrix)<-names(id_db)
+        rownames(TF_matrix)<-GeneList
+        return(TF_matrix)
+
+    }else{
+
+        for (i in seq_along(id_db)){
+            TF_vector<-rep(0,length(GeneList))
+            names(TF_vector)<-GeneList
+            TF_vector[names(TF_vector) %in% id_db[[i]]]<-1
+
+            if (i==1){
+                TF_matrix<-matrix(ncol=length(id_db))
                 TF_matrix<-TF_vector
                 rm(TF_vector)
             }else{
@@ -346,49 +331,147 @@ set_user_data<-function(metadata,binary_matrix){
     assign("Mat01",binary_matrix,envir = .GlobalEnv)
 }
 
-deseq2table<-function(deseq.result){
-    #' @title Extracts data from a DESeq2 results object.
+preprocessInputData<-function(inputData){
+    #' @title Extracts data from a DESeqResults object or a data frame.
     #' @description Function to extract Gene IDs, logFoldChange, and p-val
-    #' values from a DESeqResults object
-    #' @param deseq.result DESeqResults object. Must include gene IDs
+    #' values from a DESeqResults object or data frame. Gene IDs are
+    #' translated to ENTREZ IDs, if possible, and the resultant data frame
+    #' is sorted accordint to decreasing log2(Fold Change).
+    #' @param inputData DESeqResults object or data frame. In all cases
+    #' must include gene IDs. Data frame inputs should include 'pvalue' and
+    #' 'log2FoldChange' as well.
     #' @return A table containing Entrez Gene IDs, LogFoldChange and p-val
-    #' values, sorted by log2FoldChange
-    #' @export deseq2table
+    #' values (both raw p-value and fdr adjusted p-value), sorted by
+    #' log2FoldChange.
+    #' @export preprocessInputData
     #' @examples
-    #' data("deseq.result",package="TFEA.ChIP")
-    #' deseq2table(deseq.result)
+    #' data("hypoxia_DESeq",package="TFEA.ChIP")
+    #' preprocessInputData(hypoxia_DESeq)
 
-    if(!requireNamespace("DESeq2", quietly = TRUE)){
-        stop("DESeq2 package needed for this function to work. ",
-             "Please install it.", call. = FALSE)
+    if(class(inputData)=="DESeqResults"){
+        # Extracting data from a DESeqResults object
+        if(!requireNamespace("DESeq2", quietly = TRUE)){
+            stop("DESeq2 package needed for this function to work. ",
+                 "Please install it.", call. = FALSE)
+        }
+
+        # check the gene ids and translate if needed
+        if(grepl("^\\d*$",rownames(inputData)[1])==FALSE){
+            genes<-suppressMessages(
+                GeneID2entrez(rownames(inputData),return.Matrix = TRUE))
+            genes<-genes[!is.na(genes$ENTREZ.ID),]
+            inputData<-inputData[rownames(inputData)%in%genes$GENE.ID,]
+            genes<-genes$ENTREZ.ID
+        }else{
+            genes<-rownames(inputData)
+        }
+        # get the rest of the variables
+        log2FoldChange<-inputData@listData$log2FoldChange
+        pvalue<-inputData@listData$pvalue
+        pval.adj<-p.adjust(pvalue,"fdr")
+
+        Table<-data.frame(
+            Genes=genes,
+            log2FoldChange=log2FoldChange,
+            pvalue=pvalue,
+            pval.adj=pval.adj
+        )
+        Table$Genes<-as.character(Table$Genes)
+        Table<-Table[!is.na(Table$log2FoldChange),]
+        Table<-Table[order(Table$log2FoldChange,decreasing = TRUE),]
+        return(Table)
+
+    }else if (class(inputData)=="data.frame"){
+        # Extracting data from a data frame.
+        # Checkig if all the necessary columns are present
+        if(FALSE %in%
+           (c("Genes","pvalue","log2FoldChange") %in% colnames(inputData)) &
+           FALSE %in%
+           (c("Genes","pval.adj","log2FoldChange") %in% colnames(inputData))){
+            warning(
+                "The necessary atributes can't be found in input data frame. ",
+                "Input data must include: 'Genes', 'log2FoldChange',and ",
+                "'pvalue' or 'pval.adj'")
+        }
+        # If there's not and adjusted p-value column
+        if(!("pval.adj" %in% colnames(inputData))){
+            inputData$pval.adj<-p.adjust(inputData$pvalue,"fdr")
+        }
+        # If Gene IDs aren't in Entrez Gene ID format
+        if(grepl("^\\d*$",inputData$Genes[1])==FALSE){
+            genes<-suppressMessages(
+                GeneID2entrez(inputData$Gene,return.Matrix = TRUE))
+            genes<-genes[!is.na(genes$ENTREZ.ID),]
+            inputData<-inputData[inputData$Gene %in% genes$GENE.ID,]
+            inputData$Genes<-as.character(genes$ENTREZ.ID)
+        }
+        # sorting according to log2(FoldChange)
+        inputData<-inputData[order(
+            inputData$log2FoldChange,decreasing = TRUE),]
+        return(inputData)
     }
-    requireNamespace("DESeq2")
+}
 
-    # check the gene ids and translate if needed
-    if(grepl("^\\d*$",rownames(deseq.result)[1])==FALSE){
-        genes<-suppressWarnings(
-            GeneID2entrez(rownames(deseq.result),return.Matrix = T))
-        genes<-genes[!is.na(genes$ENTREZ.ID),]
-        deseq.result<-deseq.result[rownames(deseq.result)%in%genes$GENE.ID,]
-        genes<-genes$ENTREZ.ID
-    }else{
-        genes<-rownames(deseq.result)
+Select_genes<-function(GeneExpression_df, max_pval=0.05, min_pval=0, max_LFC=NULL,min_LFC=NULL ){
+    #' @title Extracts genes according to logFoldChange and p-val limits
+    #' @description Function to extract Gene IDs from a dataframe according
+    #' to the established limits for log2(FoldChange) and p-value.
+    #' If possible, the function will use the adjusted p-value column.
+    #' @param GeneExpression_df A data frame with the folowing fields:
+    #' "Gene", "pvalue" or "pval.adj", "log2FoldChange".
+    #' @param max_pval maximum p-value allowed, 0.05 by default.
+    #' @param min_pval minimum p-value allowed, 0 by default.
+    #' @param max_LFC maximum log2(FoldChange) allowed.
+    #' @param min_LFC minimum log2(FoldChange) allowed.
+    #' @return A vector of gene IDs.
+    #' @export Select_genes
+    #' @examples
+    #' data("hypoxia",package="TFEA.ChIP")
+    #' Select_genes(hypoxia)
+
+    # Checking input variables
+    if(is.null(max_LFC) & !is.null(min_LFC)){
+        if(min_LFC==0){
+            max_LFC<-max(GeneExpression_df$log2FoldChange)
+            min_LFC<-min(GeneExpression_df[
+                GeneExpression_df$log2FoldChange>0,]$log2FoldChange)
+        }else{
+            max_LFC<-max(GeneExpression_df$log2FoldChange)
+        }
+
+    }else if(is.null(min_LFC) & !is.null(max_LFC)){
+        if(max_LFC==0){
+            min_LFC<-min(GeneExpression_df$log2FoldChange)
+            max_LFC<-max(GeneExpression_df[
+                GeneExpression_df$log2FoldChange<0,]$log2FoldChange)
+        }else{
+            min_LFC<-min(GeneExpression_df$log2FoldChange)
+        }
     }
-    # get the rest of the variables
-    log2FoldChange<-deseq.result@listData$log2FoldChange
-    pvalue<-deseq.result@listData$pvalue
-    pval.adj<-p.adjust(pvalue,"fdr")
+    if(max_pval<min_pval){
+        message("'max_pval' has to be greater than 'min_pval'. ")
+        break
+    }
 
-    Table<-data_frame(
-        Genes=genes,
-        log2FoldChange=log2FoldChange,
-        pvalue=pvalue,
-        pval.adj=pval.adj
-    )
-    Table$Genes<-as.character(Table$Genes)
-    Table<-Table[!is.na(Table$log2FoldChange),]
-    Table<-Table[order(Table$log2FoldChange,decreasing = TRUE),]
-    return(Table)
+    # Selecting by p-value
+    if("pval.adj" %in% colnames(GeneExpression_df)){
+        geneSelection<-GeneExpression_df[
+            GeneExpression_df$pval.adj>=min_pval &
+            GeneExpression_df$pval.adj<=max_pval,]
+    }else if ("pvalue" %in% colnames(GeneExpression_df)){
+        geneSelection<-GeneExpression_df[
+            GeneExpression_df$pvalue>=min_pval &
+            GeneExpression_df$pvalue<=max_pval,]
+    }
+    # Selecting by log2(FoldChange)
+    if(!is.null(min_LFC) & !is.null(max_LFC)){
+        geneSelection<-geneSelection[
+            geneSelection$log2FoldChange>=min_LFC &
+            geneSelection$log2FoldChange<=max_LFC,]
+    }
+
+    geneSelection<-geneSelection$Gene
+    return(geneSelection)
 }
 
 GeneID2entrez<-function(gene.IDs,return.Matrix = FALSE){
@@ -412,9 +495,6 @@ GeneID2entrez<-function(gene.IDs,return.Matrix = FALSE){
     #' @examples
     #' GeneID2entrez(c("TNMD","DPM1","SCYL3","FGR","CFH","FUCA2","GCLC"))
 
-    requireNamespace("biomaRt")
-    requireNamespace("GenomicFeatures")
-
     Genes<-GenomicFeatures::genes(TxDb.Hsapiens.UCSC.hg19.knownGene)
     suppressMessages(GeneNames<-biomaRt::select(
         org.Hs.eg.db, Genes$gene_id, c("SYMBOL", "ENSEMBL")))
@@ -432,17 +512,17 @@ GeneID2entrez<-function(gene.IDs,return.Matrix = FALSE){
                 "Genes were assigned the first ENTREZ ID match found.\n",
                 call. =FALSE)
         }
-    cat("Done! ",length(tmp[!is.na(tmp)])," genes of ",length(tmp),
+    message("Done! ",length(tmp[!is.na(tmp)])," genes of ",length(tmp),
         " successfully translated.\n")
 
     if(return.Matrix==TRUE){
-        if (length(tmp[is.na(tmp)])>0){cat("Couldn't find Entrez IDs for ",
+        if (length(tmp[is.na(tmp)])>0){message("Couldn't find Entrez IDs for ",
             length(tmp[is.na(tmp)])," genes (NAs returned instead).\n")}
         return(data.frame(
             GENE.ID=gene.IDs,ENTREZ.ID=GeneNames[tmp,"ENTREZID"]))
     }else{
-        if (length(tmp[is.na(tmp)])>0){cat("Couldn't find Entrez IDs for ",
-            length(tmp[is.na(tmp)]),"genes.\n")}
+        if (length(tmp[is.na(tmp)])>0){message("Couldn't find Entrez IDs for ",
+            length(tmp[is.na(tmp)])," genes.\n")}
         return(GeneNames[tmp[!is.na(tmp)],"ENTREZID"])
     }
 }
@@ -464,8 +544,6 @@ get_chip_index<-function(database = "g",TFfilter = NULL){
     #' get_chip_index(database="e")
     #' get_chip_index(database="general",TFfilter=c("SMAD2","SMAD4"))
 
-    requireNamespace("dplyr")
-    requireNamespace("utils")
     if(!exists("MetaData")){
         data("MetaData",package = "TFEA.ChIP",envir = environment())
         }
@@ -507,8 +585,6 @@ contingency_matrix<-function(test_list,control_list,chip_index=get_chip_index())
     #' data("Genes.Upreg",package = "TFEA.ChIP")
     #' CM_list_UP <- contingency_matrix(Genes.Upreg)
 
-    requireNamespace("utils")
-
     if (missing(control_list)){
         # Generating control gene list in case is not provided.
         Genes<-GenomicFeatures::genes(
@@ -526,7 +602,7 @@ contingency_matrix<-function(test_list,control_list,chip_index=get_chip_index())
     Matrix2<-Mat01[rownames(Mat01)%in%control_list,
         colnames(Mat01)%in%chip_index$Accession]
 
-    for (i in 1:length(chip_index[,1])){
+    for (i in seq_along(chip_index$Accession)){
         chip.vector1<-Matrix1[,chip_index$Accession[i]]
         chip.vector2<-Matrix2[,chip_index$Accession[i]]
 
@@ -541,14 +617,11 @@ contingency_matrix<-function(test_list,control_list,chip_index=get_chip_index())
 
         if (i==1){
             contMatrix_list<-list(contMatrix)
-            names(contMatrix_list)[i]<-as.character(chip_index$Accession[i])
-            rm(contMatrix)
         }else{
             contMatrix_list<-c(contMatrix_list,list(contMatrix))
-            names(contMatrix_list)[i]<-as.character(chip_index$Accession[i])
-            rm(contMatrix)
         }
     }
+    names(contMatrix_list)<-as.character(chip_index$Accession)
     return(contMatrix_list)
 }
 
@@ -573,32 +646,27 @@ getCMstats<-function(contMatrix_list,chip_index=get_chip_index()){
     #' data("CM_list",package = "TFEA.ChIP")
     #' stats_mat_UP <- getCMstats(CM_list)
 
-    requireNamespace("stats")
+    pvals<-sapply(seq_along(contMatrix_list),
+        function(lista,i){
+            pval<-stats::fisher.test(lista[[i]])$p.value
+            return(pval)},
+        lista=contMatrix_list)
 
-    for (i in 1:length(contMatrix_list)){
-        pval<-stats::fisher.test(x=contMatrix_list[[i]])
-        if (i==1){
-            pval_list<-list(pval)
-            names(pval_list)[i]<-names(contMatrix_list)[i]
-        }else{
-            pval_list<-c(pval_list,list(pval))
-            names(pval_list)[i]<-names(contMatrix_list)[i]
-        }
-    }
+    oddsRatios<-sapply(seq_along(contMatrix_list),
+        function(lista,i){
+            pval<-stats::fisher.test(lista[[i]])$estimate
+            return(pval)},
+        lista=contMatrix_list)
+
+    chip_index<-chip_index[chip_index$Accession %in% names(contMatrix_list),]
+    chip_index<-chip_index[order(names(contMatrix_list)),]
 
     statMat<-data.frame(
         Accession=chip_index$Accession,
         TF=chip_index$TF,
-        p.value=NA,
-        OR=NA)
-    for (idx in names(contMatrix_list)){
-        FTres<-try({stats::fisher.test(x=contMatrix_list[[idx]])},
-            silent = TRUE)
-        if(class(FTres)=="htest"){
-            statMat$p.value[which(statMat$Accession==idx)]<-FTres$p.value
-            statMat$OR[which(statMat$Accession==idx)]<-FTres$estimate
-        }
-    }
+        p.value=pvals,
+        OR=oddsRatios)
+
     statMat$adj.p.value<-stats::p.adjust(statMat$p.value,"fdr")
     statMat$log.adj.pVal<-(-1*(log10(statMat$adj.p.value)))
 
@@ -682,11 +750,10 @@ GSEA_Shuffling<-function(gene.list,permutations){
     # examples
     # GSEA_Shuffling(gene.list,1000)
 
-    shuffledGL<-list()
-    for(i in 1:permutations){
-        tmp<-sample(gene.list)
-        shuffledGL<-c(shuffledGL,list(tmp))
-    }
+    shuffledGL<-rep(list(gene.list),permutations)
+
+    shuffledGL<-lapply(shuffledGL,sample)
+
     return(shuffledGL)
 }
 
@@ -715,9 +782,6 @@ GSEA_run<-function(gene.list,chip_index=get_chip_index(),get.RES = FALSE,RES.fil
     #' chip_index<-get_chip_index(TFfilter = c("HIF1A","EPAS1","ARNT"))
     #' GSEA.result <- GSEA_run(Entrez.gene.IDs,chip_index,get.RES = TRUE)
 
-    requireNamespace("stats")
-    requireNamespace("utils")
-
     if (!exists("Mat01")){
         data("Mat01",package = "TFEA.ChIP",envir = environment())
     }
@@ -733,23 +797,27 @@ GSEA_run<-function(gene.list,chip_index=get_chip_index(),get.RES = FALSE,RES.fil
         res<-list()
         ind<-list()
     }
-    for (i in 1:length(chip_index$Accession)){
+    # create progress bar
+    pbar <- txtProgressBar(min = 0, max = length(chip_index$Accession), style = 3)
+
+    for (i in seq_along(chip_index$Accession)){
 
         chip.genes<-Mat01[,colnames(Mat01)==chip_index$Accession[i]]
         chip.genes<-names(chip.genes[chip.genes==1])
 
         if(length(chip.genes)>10){
-            result<-GSEA_EnrichmentScore(gene.list, chip.genes)
-            shuffled.ES<-vector()
-            for (j in 1:length(shuffledGL)){
-                # Get ES for the random gene list to compute pval.
-                shuffled.ES[j]<-GSEA_EnrichmentScore(
-                    shuffledGL[[j]], chip.genes)$ES
-            }
 
-            enrichmentScore[i]<-result$ES
-            pval[i]<-sum(abs(shuffled.ES) >= abs(result$ES)) / 1000
-            enrichmentArg[i]<-result$arg.ES
+            result<-GSEA_EnrichmentScore(gene.list, chip.genes)
+
+            shuffled.ES<-sapply(seq_along(shuffledGL),
+                function(lista,j){
+                    tmp.ES<-GSEA_EnrichmentScore(lista[[j]], chip.genes)$ES
+                    return(tmp.ES)},
+                lista=shuffledGL)
+
+            enrichmentScore<-c(enrichmentScore,result$ES)
+            pval<-c(pval,sum(abs(shuffled.ES) >= abs(result$ES)) / 1000)
+            enrichmentArg<-c(enrichmentArg,result$arg.ES)
 
             if(get.RES==TRUE & missing(RES.filter)){
                 # Store running sums of selected TFs.
@@ -766,16 +834,10 @@ GSEA_run<-function(gene.list,chip_index=get_chip_index(),get.RES = FALSE,RES.fil
                 }
             }
         }else{chip_index<-chip_index[-i,]}
-
-        if(i==abs(length(chip_index[,1])*0.25)){
-            cat("|||||||||| 25%\n")
-        }else if (i==abs(length(chip_index[,1])*0.5)){
-            cat("|||||||||||||||||||| 50%\n")
-        }else if (i==abs(length(chip_index[,1])*0.75)){
-            cat("|||||||||||||||||||||||||||||| 75%\n")
-        }else if (i==length(chip_index[,1])){
-            cat("|||||||||||||||||||||||||||||||||||||||| Done!\n")}
+        # update progress bar
+        setTxtProgressBar(pbar, i)
     }
+    close(pbar)
     pval.adj<-stats::p.adjust(pval,"fdr") # Adjust pvalues
 
     enrichmentTable<-cbind(chip_index$Accession,chip_index$TF,
@@ -823,7 +885,6 @@ plot_CM<-function(CM.statMatrix,plot_title = NULL,specialTF = NULL,TF_colors = N
         stop("plotly package needed for this function to work. ",
             "Please install it.", call. = FALSE)
     }
-    requireNamespace("plotly")
 
     if (is.null(plot_title)){plot_title<-"Transcription Factor Enrichment"}
     if (is.null(specialTF)){
@@ -950,8 +1011,6 @@ plot_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_colors =
         stop("plotly package needed for this function to work. ",
             "Please install it.", call. = FALSE)
     }
-    requireNamespace("dplyr")
-    requireNamespace("plotly")
 
     if(is.data.frame(GSEA_result)==TRUE){
         enrichmentTable<-GSEA_result
@@ -991,7 +1050,7 @@ plot_ES<-function(GSEA_result,LFC,plot_title = NULL,specialTF = NULL,TF_colors =
     }
 
     simbolo<-rep("pVal>0.05",times=length(enrichmentTable[,1]))
-    for (i in 1:length(enrichmentTable[,1])){
+    for (i in seq_along(enrichmentTable[,1])){
         if(!is.na(enrichmentTable[i,4])){
             if (enrichmentTable[i,4]<=0.05){simbolo[i]<-"pVal<0.05"}
         }
@@ -1087,9 +1146,6 @@ plot_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.sty
         stop("plotly package needed for this function to work.",
             " Please install it.", call. = FALSE)
     }
-    requireNamespace("utils")
-    requireNamespace("dplyr")
-    requireNamespace("plotly")
 
     if (!is.null(Accession) | !is.null(TF)){
         if(is.null(Accession)){
@@ -1128,7 +1184,7 @@ plot_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.sty
     Treatment<-rep("no treatment",length(Accession))
     TF<-vector()
     RES<-list()
-    for(i in 1:length(Accession)){
+    for(i in seq_along(Accession)){
         Cell[i]<-MetaData[MetaData$Accession==Accession[i],]$Cell
         if(MetaData[MetaData$Accession==Accession[i],]$Treatment!="none"){
             Treatment[i]<-MetaData[MetaData$Accession==Accession[i],5]
@@ -1142,7 +1198,7 @@ plot_RES<-function(GSEA_result,LFC,plot_title = NULL,line.colors = NULL,line.sty
     rm(Cell,Treatment,TF,RES)
 
     if(length(tabla[,1])>1){
-        for(i in 1:length(Accession)){
+        for(i in seq_along(Accession)){
             if (i==1){
                 grafica<-plotly::plot_ly(tabla, x=c(1:length(tabla$RES[[1]])),
                     y=tabla$RES[[Accession[1]]], type="scatter", mode="lines",
@@ -1219,8 +1275,8 @@ highlight_TF<-function(table,column,specialTF,markerColors){
 
 
     highlight<-rep("Other",length(table[,1]))
-    for (i in 1:length(specialTF)){
-        for (j in 1:length(table[,1])){
+    for (i in seq_along(specialTF)){
+        for (j in seq_along(table[,1])){
             if(!is.na(table[j,column])){
                 if (table[j,column]==specialTF[i]){
                     highlight[j]<-names(specialTF)[i]
@@ -1252,10 +1308,6 @@ get_LFC_bar<-function(LFC){
         stop("plotly package needed for this function to work. ",
             "Please install it.", call. = FALSE)
     }
-    requireNamespace("grDevices")
-    requireNamespace("dplyr")
-    requireNamespace("plotly")
-    requireNamespace("scales")
 
     vals <- scales::rescale(LFC)
     o <- order(vals, decreasing = FALSE)
