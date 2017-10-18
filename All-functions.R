@@ -385,7 +385,6 @@ preprocessInputData<-function(inputData){
     }else if (class(inputData)=="data.frame"){
         # Extracting data from a data frame.
         # Checkig if all the necessary columns are present
-
         if(FALSE %in%
            (c("Genes","pvalue","log2FoldChange") %in% colnames(inputData)) &
            FALSE %in%
@@ -411,9 +410,8 @@ preprocessInputData<-function(inputData){
             inputData$log2FoldChange,decreasing = TRUE),]
         return(inputData)
     }else(
-      stop("preprocessInputData requires a DESeqResults object or ",
-           "a data frame as input.", call. = FALSE)
-    )
+        stop("preprocessInputData requires a DESeqResults object or ",
+            "a data frame as input.", call. = FALSE))
 }
 
 Select_genes<-function(GeneExpression_df, max_pval=0.05, min_pval=0, max_LFC=NULL,min_LFC=NULL ){
@@ -453,7 +451,9 @@ Select_genes<-function(GeneExpression_df, max_pval=0.05, min_pval=0, max_LFC=NUL
         }
     }
     if(max_pval<min_pval){
-      stop("'max_pval' has to be greater than 'min_pval'. ", call. = FALSE)
+        stop("'max_pval' has to be greater than 'min_pval'. ", call. = FALSE)
+    }else if (max_LFC<min_LFC){
+        stop("'max_LFC' has to be greater than 'min_LFC'. ", call. = FALSE)
     }
 
     # Selecting by p-value
@@ -506,6 +506,8 @@ GeneID2entrez<-function(gene.IDs,return.Matrix = FALSE){
 
     if(grepl("ENSG0",gene.IDs[1])==TRUE){ID.type<-"ENSEMBL"
     }else{ID.type<-"SYMBOL"}
+
+    gene.IDs<-toupper(gene.IDs) # in case any name is in lowercase.
 
     tmp<-match(as.character(gene.IDs),GeneNames[,ID.type])
     tmp2<-match(GeneNames[,ID.type],as.character(gene.IDs))
