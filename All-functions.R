@@ -379,11 +379,19 @@ preprocessInputData<-function(inputData){
         Table$Genes<-as.character(Table$Genes)
         Table<-Table[!is.na(Table$log2FoldChange),]
         Table<-Table[order(Table$log2FoldChange,decreasing = TRUE),]
+        rownames(Table)<-NULL
         return(Table)
 
     }else if (class(inputData)=="data.frame"){
         # Extracting data from a data frame.
         # Checkig if all the necessary columns are present
+        if(FALSE %in% ("log2FoldChange" %in% colnames(inputData))){
+          stop(
+            "The necessary atributes can't be found in input data frame. ",
+            "Input data must include a numeric column 'log2FoldChange' ",
+            "that will be used to sort the vector of names.",
+            call. = FALSE)
+        }
         if(FALSE %in%
            (c("Genes","pvalue","log2FoldChange") %in% colnames(inputData)) &
            FALSE %in%
@@ -409,7 +417,10 @@ preprocessInputData<-function(inputData){
         inputData<-inputData[order(
             inputData$log2FoldChange,decreasing = TRUE),]
         return(inputData)
-    }
+    }else(
+      stop("preprocessInputData requires a DESeqResults object or ",
+           "a data frame as input.", call. = FALSE)
+    )
 }
 
 Select_genes<-function(GeneExpression_df, max_pval=0.05, min_pval=0, max_LFC=NULL,min_LFC=NULL ){
@@ -449,8 +460,7 @@ Select_genes<-function(GeneExpression_df, max_pval=0.05, min_pval=0, max_LFC=NUL
         }
     }
     if(max_pval<min_pval){
-        message("'max_pval' has to be greater than 'min_pval'. ")
-        break
+      stop("'max_pval' has to be greater than 'min_pval'. ", call. = FALSE)
     }
 
     # Selecting by p-value
