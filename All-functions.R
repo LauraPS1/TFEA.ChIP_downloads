@@ -1215,10 +1215,12 @@ plot_RES <- function(GSEA_result, LFC, plot_title = NULL, line.colors = NULL, li
     # Checking if there's any Accession or TF filter
     if (!is.null(Accession) | !is.null(TF)) {
         if (is.null(Accession)) {
-            Accession <- GSEA_result$Enrichment.table$Accession
+            Accession <- GSEA_result$Enrichment.table[
+                GSEA_result$Enrichment.table$TF %in% TF]$Accession
         }
         if (is.null(TF)) {
-            TF <- GSEA_result$Enrichment.table$TF
+            TF <- GSEA_result$Enrichment.table[
+                GSEA_result$Enrichment.table$Accession %in% Accession]$TF
         }
 
         GSEA_result$Enrichment.table <- GSEA_result$Enrichment.table[
