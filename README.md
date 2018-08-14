@@ -1,6 +1,8 @@
 # TFEA
 TFEA.ChIP is an R package in developement. Its purpose is to analyze transcription factor enrichment in a set of differentially expressed genes.
 
+A web implementation of TFEA.ChIP is available at https://www.iib.uam.es/TFEA.ChIP/
+
 Specifically TFEA.ChIP, uses information derived from the hundreds of ChIP-Seq experiments from the 
 ENCODE Consortium<sup>[1]</sup>  expanded to include additional
 datasets contributed to GEO database<sup>[2][3]</sup> by individual laboratories
