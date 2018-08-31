@@ -2,6 +2,8 @@ Each file on this folder contains a database ready to use with the R package TFE
 
 Currently available databases are:
 
+### Human ChIP-Seq databases:
+
 TSS1kb.Rdata: links genes to ChIP-Seq experiments with peaks up to 1Kb from a gene.
 
 TSS5kb.Rdata: links genes to ChIP-Seq experiments with peaks up to 5Kb from a gene.
@@ -11,6 +13,14 @@ TSS5kb+distantSites.Rdata: includes binding to enhancers linked to known genes[1
 TSS10kb.Rdata: links genes to ChIP-Seq experiments with peaks up to 10Kb from a gene.
 
 TSS10kb+distantSites.Rdata: includes binding to enhancers linked to known genes[1]
+
+### Mouse ChIP-seq databases:
+
+mm_TSS1kb:links genes to ChIP-Seq experiments with peaks up to 1Kb from a gene.
+
+mm_TSS5kb.Rdata: links genes to ChIP-Seq experiments with peaks up to 5Kb from a gene.
+
+mm_TSS10kb.Rdata: links genes to ChIP-Seq experiments with peaks up to 10Kb from a gene.
 
 [1] Enhancer regions linked to genes where selected from the following study, filtering out those with a correlation below 0.8:
 R. E. Thurman and Others.  The accessible chromatin landscape of the human genome. Nature, 489:75-82, 2012.
