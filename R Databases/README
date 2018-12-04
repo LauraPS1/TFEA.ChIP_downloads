@@ -4,15 +4,28 @@ Currently available databases are:
 
 ### Human ChIP-Seq databases:
 
-TSS1kb.Rdata: links genes to ChIP-Seq experiments with peaks up to 1Kb from a gene.
+TC_TSS1kb.Rdata: links genes to ChIP-Seq experiments with peaks up to 1Kb from a gene.
 
-TSS5kb.Rdata: links genes to ChIP-Seq experiments with peaks up to 5Kb from a gene.
+TC_TSS5kb.Rdata: links genes to ChIP-Seq experiments with peaks up to 5Kb from a gene.
 
-TSS5kb+distantSites.Rdata: includes binding to enhancers linked to known genes[1] 
+TC_TSS5kb+distantSites.Rdata: includes binding to enhancers linked to known genes[1] 
 
-TSS10kb.Rdata: links genes to ChIP-Seq experiments with peaks up to 10Kb from a gene.
+TC_TSS10kb.Rdata: links genes to ChIP-Seq experiments with peaks up to 10Kb from a gene.
 
-TSS10kb+distantSites.Rdata: includes binding to enhancers linked to known genes[1]
+TC_TSS10kb+distantSites.Rdata: includes binding to enhancers linked to known genes[1]
+
+
+RM_TSS1kb.Rdata: links genes to ChIP-Seq experiments with peaks up to 1Kb from a gene. ChIP-seq source:ReMap's database [2]
+
+RM_TSS1kb+distantSites.Rdata: includes binding to enhancers linked to known genes[1]. ChIP-seq source:ReMap's database [2]
+
+RM_TSS5kb.Rdata: links genes to ChIP-Seq experiments with peaks up to 5Kb from a gene. ChIP-seq source:ReMap's database [2]
+
+RM_TSS5kb+distantSites.Rdata: includes binding to enhancers linked to known genes[1]. ChIP-seq source:ReMap's database [2]
+
+RM_TSS10kb.Rdata: links genes to ChIP-Seq experiments with peaks up to 10Kb from a gene. ChIP-seq source:ReMap's database [2]
+
+RM_TSS10kb+distantSites.Rdata: includes binding to enhancers linked to known genes[1]. ChIP-seq source:ReMap's database [2]
 
 ### Mouse ChIP-seq databases:
 
@@ -22,6 +35,12 @@ mm_TSS5kb.Rdata: links genes to ChIP-Seq experiments with peaks up to 5Kb from a
 
 mm_TSS10kb.Rdata: links genes to ChIP-Seq experiments with peaks up to 10Kb from a gene.
 
-[1] Enhancer regions linked to genes where selected from the following study, filtering out those with a correlation below 0.8:
-R. E. Thurman and Others.  The accessible chromatin landscape of the human genome. Nature, 489:75-82, 2012.
+[1] Distant binding sites are taken from GeneHancer database:
+GeneHancer: genome-wide integration of enhancers and target genes in GeneCards
+Simon Fishilevich Ron Nudel Noa Rappaport Rotem Hadar Inbar Plaschkes Tsippi Iny Stein Naomi Rosen Asher Kohn Michal Twik Marilyn Safran
+Database, Volume 2017, 1 January 2017, bax028, https://doi.org/10.1093/database/bax028
 
+[2] ReMap 2018: an updated atlas of regulatory regions from an integrative analysis of DNA-binding ChIP-seq experiments
+Jeanne Chèneby Marius Gheorghe Marie Artufel Anthony Mathelier Benoit Ballester
+Nucleic Acids Research, Volume 46, Issue D1, 4 January 2018, Pages D267–D275
+http://tagc.univ-mrs.fr/remap/
