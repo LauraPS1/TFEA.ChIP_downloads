@@ -11,6 +11,8 @@ Currently available databases are:
 
 ### Human ChIP-Seq databases:
 
+ReMap+GH_doubleElite.Rdata: links genes to ChIP-Seq experiments with peaks overlapping regulatory regions stored in GeneHancer Double Elite [1]. ChIP-seq source: ReMap 2020 collection [3]
+
 ReMap+GH_doubleElite.Rdata: links genes to ChIP-Seq experiments with peaks overlapping regulatory regions stored in GeneHancer Double Elite [1]. ChIP-seq source: ReMap 2018 collection [2]
 
 TC_TSS1kb.Rdata: links genes to ChIP-Seq experiments with peaks up to 1Kb from a gene.
@@ -55,3 +57,7 @@ Database, Volume 2017, 1 January 2017, bax028, https://doi.org/10.1093/database/
 Jeanne Chèneby Marius Gheorghe Marie Artufel Anthony Mathelier Benoit Ballester
 Nucleic Acids Research, Volume 46, Issue D1, 4 January 2018, Pages D267–D275
 http://tagc.univ-mrs.fr/remap/
+
+[3] ReMap 2020: a database of regulatory regions from an integrative analysis of Human and Arabidopsis DNA-binding sequencing experiments
+Jeanne Chèneby, Zacharie Ménétrier, Martin Mestdagh, Thomas Rosnet, Allyssa Douida, Wassim Rhalloussi, Aurélie Bergon, Fabrice Lopez, Benoit Ballester
+Nucleic Acids Research, Volume 48, Issue D1, 08 January 2020, Pages D180–D188, https://doi.org/10.1093/nar/gkz945
