@@ -5,7 +5,7 @@ To use these databases with TFEA.ChIP, load the file in your R session and use t
 load("path/to/file/database.RData")
 set_user_data( MetaData, ChIPDB )
 ```
-# TFEA.ChIP 2.1.1 Update
+# TFEA.ChIP 1.15.2 Update
 
 As time went by, the ChIP-seq collections used to build our database have grown considerably. In order to minimize the resources needed to use TFEA.ChIP, we are changing the format of our ChIP-Gene databases, from the original matrices:
 
