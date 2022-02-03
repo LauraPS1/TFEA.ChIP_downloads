@@ -78,6 +78,8 @@ RM_TSS10kb+distantSites.Rdata: includes binding to enhancers linked to known gen
 
 ### Mouse ChIP-seq databases:
 
+mm_ReMap2022_TSS250b.Rdata: links genes to ChIP-Seq experiments with peaks up to 250 bases from the transcription starting site of a gene. ChIP-seq source: ReMap 2022 collection [4]
+
 mm_TSS1kb:links genes to ChIP-Seq experiments with peaks up to 1Kb from a gene.
 
 mm_TSS5kb.Rdata: links genes to ChIP-Seq experiments with peaks up to 5Kb from a gene.
